@@ -1,25 +1,29 @@
 
-
 ## You should have been able to clone the Git repository: https://github.com/Randrews92/UKBBMeno.git and you should now be able to see the GIT button above.
 
-# First go into terminal and type: dx download Vitamins_and_supplements_participant.csv
+# First go into Terminal and type: dx download Vitamins_and_supplements_participant.csv
 
 # The file should be loaded in the lower right hand panel under the Files tab. 
 # Click on the file and select Import Dataset. The file should populate in Environment in the upper right panel.
+
+# Once you've created your branch on Git you'll need to select the Git button above and select Pull Branches.
+
+# To switch to your own branch, select the Terminal tab below and type: git checkout branchname (where branchname is the name of your branch)
+
+# You should get a notice below saying something like "Switched to new branch branchname"
 
 # Next install these packages:
 
 install.packages('tidyverse')
 install.packages('dplyr')
 install.packages('data.table')
-install.packages('broom.helpers') #needed to install gtsummary
-#If you have issues installing broom.helpers one go into Terminal and type the following lines one after the other: 
+install.packages('broom.helpers') #this is needed to install gtsummary
+#If you have issues installing broom.helpers one go into Terminal and type the following lines one after the other (without the hashes): 
 #sudo apt-get update -y 
 #sudo apt-get update
 #sudo apt-get install cmake
 install.packages('gtsummary')
 install.packages('ggplot2') #good for creating graphs and data visualising 
-
 
 # Once all have been installed successfully remove the above code, going forward load the installed packages using library when you start each new session:
 
@@ -99,18 +103,20 @@ T <-x %>%
   summarise (count=n_distinct(`Participant ID`))
 
 
-## Next steps will be to conduct some descriptive analysis of the data. Use this as a means of getting used to and learning R.
-# Look up youtube tutorials on Tidyverse and R basics.
+## Next steps will be to conduct some descriptive analysis of the data. 
+# You can use this as a means of getting used to and learning R.
 # You can practice conducting analysis to examine average age (at onboarding) per supplement type used. 
 # You can also create a cohort of women who reported menopause using the methods above. 
 # You can then look at supplement prevalence in a cohort of menopausal women. 
-# Don't worry too much about things being perfect or final-the important thing is to learn and practice analysing the data. 
-# You can also explore using package gtSummary to analyse the data and create nice tables: https://www.danieldsjoberg.com/gtsummary/
+# Look up youtube tutorials on Tidyverse and R basics.
+# Stack Exchange is the best website for figuring out which code/ packages to use. 
+# Chat GPT is also really helpful for writing code, troubleshooting, or fixing errors in code.
 
 ## When you've finished working on this, save it, then select the GIT button above and select Commit. 
-## Commit your changes then Push your changes (use the PAT I sent you if it requests a password).
-## Make sure you Quit and Terminate the session once you're finished, closing the window will not terminate and they'll continue to charge us. 
+## Commit your changes, write a message, then Push your changes (you'll need the PAT you generated and your Git username).
+## When starting new sessions always remember to switch to your own branch.
+## Remember if you change something in Git you'll need to conduct a Git pull before committing and pushing new analyses.
+## It's REALLY important you make sure you Quit and Terminate the session once you've finished using R for the day.
+## Closing the window will not terminate the session and they'll continue to charge us.
 
-saveRDS(vits, "vits.rds")
 
-#
