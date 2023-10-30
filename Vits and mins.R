@@ -112,4 +112,4 @@ T <-x %>%
 ## Make sure you Quit and Terminate the session once you're finished, closing the window will not terminate and they'll continue to charge us. 
 
 saveRDS(vits, "vits.rds")
-
+# testing
