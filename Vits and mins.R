@@ -79,7 +79,7 @@ vitslong <- vitsonly %>%
 vitslong %>% 
   group_by(`Supplement type`) %>% 
   summarise (count=n_distinct(`Participant ID`))
-
+ b
 # This gives over 9000 combinations of supplements usage, which isn't ideal. 
 
 # Instead we can explore the counts by ID for each unique supplement: 
