@@ -1,5 +1,7 @@
 
-## You should have been able to clone the Git repository: https://github.com/Randrews92/UKBBMeno.git and you should now be able to see the GIT button above.
+#   git config --global user.email "DouglasEA@cardiff.ac.uk"
+#   git config --global user.name "Eve"
+# You should have been able to clone the Git repository: https://github.com/Randrews92/UKBBMeno.git and you should now be able to see the GIT button above.
 
 # First go into Terminal and type: dx download Vitamins_and_supplements_participant.csv
 
@@ -10,22 +12,7 @@
 
 # To switch to your own branch, select the Terminal tab below and type: git checkout branchname (where branchname is the name of your branch)
 
-# You should get a notice below saying something like "Switched to new branch branchname"
-
-# Next install these packages:
-
-install.packages('tidyverse')
-install.packages('dplyr')
-install.packages('data.table')
-install.packages('broom.helpers') #this is needed to install gtsummary
-#If you have issues installing broom.helpers one go into Terminal and type the following lines one after the other (without the hashes): 
-#sudo apt-get update -y 
-#sudo apt-get update
-#sudo apt-get install cmake
-install.packages('gtsummary')
-install.packages('ggplot2') #good for creating graphs and data visualising 
-
-# Once all have been installed successfully remove the above code, going forward load the installed packages using library when you start each new session:
+#when you start each new session:
 
 library('tidyverse')
 library('dplyr')
@@ -103,20 +90,57 @@ T <-x %>%
   summarise (count=n_distinct(`Participant ID`))
 
 
-## Next steps will be to conduct some descriptive analysis of the data. 
-# You can use this as a means of getting used to and learning R.
-# You can practice conducting analysis to examine average age (at onboarding) per supplement type used. 
-# You can also create a cohort of women who reported menopause using the methods above. 
-# You can then look at supplement prevalence in a cohort of menopausal women. 
-# Look up youtube tutorials on Tidyverse and R basics.
-# Stack Exchange is the best website for figuring out which code/ packages to use. 
-# Chat GPT is also really helpful for writing code, troubleshooting, or fixing errors in code.
+#My code
+Menopause <- vits %>% 
+  filter(if_any(starts_with("Had menopause"), ~grepl("Yes", .)))
+n_distinct(vitsonly$`Participant ID`)
 
-## When you've finished working on this, save it, then select the GIT button above and select Commit. 
-## Commit your changes, write a message, then Push your changes (you'll need the PAT you generated and your Git username).
-## When starting new sessions always remember to switch to your own branch.
-## Remember if you change something in Git you'll need to conduct a Git pull before committing and pushing new analyses.
-## It's REALLY important you make sure you Quit and Terminate the session once you've finished using R for the day.
-## Closing the window will not terminate the session and they'll continue to charge us.
+vitCalcium <- vitsonly %>% 
+  filter(if_any(starts_with("Vitamin and/or"), ~grepl("Calcium", .)))
+n_distinct(vitCalcium$`Participant ID`)
+mean(vitCalcium$`Age at recruitment`)
+range(vitCalcium$`Age at recruitment`)
+
+vitChrom <- vitsonly %>% 
+  filter(if_any(starts_with("Vitamin and/or"), ~grepl("Chromium", .)))
+n_distinct(vitChrom$`Participant ID`)
+mean(vitChrom$`Age at recruitment`)
+range(vitChrom$`Age at recruitment`)
+
+vitsonlyMeno <- vitsonly %>% 
+  filter(if_any(starts_with("Had menopause"), ~grepl("Yes", .)))
+n_distinct(vitsonlyMeno$`Participant ID`)
+range(vitsonlyMeno$`Age at recruitment`)
+
+MenoZinc <- vitsonlyMeno %>% 
+  filter(if_any(starts_with("Vitamin and/or"), ~grepl("Zinc", .)))
+n_distinct(MenoZinc$`Participant ID`)
+mean(MenoZinc$`Age at recruitment`)
+
+vitsonlyHRT <- vitsonlyMeno %>% 
+  filter(if_any(starts_with("Ever used hormone-replacement"), ~grepl("Yes", .)))
+n_distinct(vitsonlyHRT$`Participant ID`)
+
+vitslong <- vitsonly %>% 
+  pivot_longer(
+    cols = 23:26, 
+    names_to = "Age at menopause-instance", 
+    values_to = "age" 
+  )
+vitslongB <- vitslong[!is.na(as.numeric(vitslong$age)),]
+vitslongB         
+vitslongB$age2=as.numeric(vitslongB$age)
+mean(vitslongB$`age2`)
+
+Totalagelong <- vits %>% 
+  pivot_longer(
+    cols = 23:26, 
+    names_to = "Age at menopause-instance", 
+    values_to = "age" 
+  )
+TotalagelongB <- Totalagelong[!is.na(as.numeric(Totalagelong$age)),]
+TotalagelongB         
+TotalagelongB$age2=as.numeric(TotalagelongB$age)
+mean(TotalagelongB$`age2`)
 
 
