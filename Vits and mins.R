@@ -27,13 +27,7 @@ library('ggplot2')
 # Rename your dataset so it's shorter:
 
 vits <- Vitamins_and_supplements_participant
-
-# Count total participants in dataset:
-
 n_distinct(vits$`Participant ID`)
-
-#average age of all IDs at recruitment
-
 mean(vits$`Age at recruitment`)
 
 # Create a cohort of women who have selected Yes to taking a vitamin/ supplement in any instance.
@@ -42,11 +36,7 @@ mean(vits$`Age at recruitment`)
 vitsonly <- vits %>% 
   filter(if_any(starts_with("Vitamin supplement"), ~grepl("Yes", .)))
 
-#get the average age at recruitment of all IDs who said they used supps
-
 mean(vitsonly$`Age at recruitment`)
-
-# Age range of supp users
 
 range(vitsonly$`Age at recruitment`)
 
@@ -66,7 +56,7 @@ vitslong <- vitsonly %>%
 vitslong %>% 
   group_by(`Supplement type`) %>% 
   summarise (count=n_distinct(`Participant ID`))
- b
+ 
 # This gives over 9000 combinations of supplements usage, which isn't ideal. 
 
 # Instead we can explore the counts by ID for each unique supplement: 
@@ -121,13 +111,13 @@ vitsonlyHRT <- vitsonlyMeno %>%
   filter(if_any(starts_with("Ever used hormone-replacement"), ~grepl("Yes", .)))
 n_distinct(vitsonlyHRT$`Participant ID`)
 
-vitslong <- vitsonly %>% 
+vitslongA <- vitsonly %>% 
   pivot_longer(
     cols = 23:26, 
     names_to = "Age at menopause-instance", 
     values_to = "age" 
   )
-vitslongB <- vitslong[!is.na(as.numeric(vitslong$age)),]
+vitslongB <- vitslongA[!is.na(as.numeric(vitslongA$age)),]
 vitslongB         
 vitslongB$age2=as.numeric(vitslongB$age)
 mean(vitslongB$`age2`)
@@ -143,4 +133,6 @@ TotalagelongB
 TotalagelongB$age2=as.numeric(TotalagelongB$age)
 mean(TotalagelongB$`age2`)
 
-
+vitslongBzinc <- vitslongB %>% 
+  filter(if_any(starts_with("Vitamin and/or"), ~grepl("Zinc", .)))
+mean(vitslongBzinc$`age2`)
