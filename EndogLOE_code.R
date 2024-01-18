@@ -61,3 +61,22 @@ EndogLong3 <- EndogLong2 %>%
     names_to = "Age at death-instance",
     values_to = "Age at death"
   )
+
+#filter by women:
+EndolongFemale= EndogLong3Long%>%filter(grepl("female", Sex))
+EndolongFem= EndolongFemale %>% filter(!is.na(Sex))
+
+#filter by death:
+DF1= EndolongFem %>% filter(!is.na(ageAtDeath))
+DF2= DF1 %>% filter(ageAtDeath,<0)
+
+#Had menopause
+DF3= DF2%>%filter(grepl("Yes", HadMenopause))
+
+#Remove NAs
+DF4= DF3 %>% filter(!is.na(ageAtMenopause))
+DF5= DF4 %>% filter(!is.na(ageAtMenarche))
+
+#NAs --> 0 in live births
+Df6<- Df5%>%
+  mutate(livebirths1 = ifelse(is.na(livebirths), 0, livebirths))
