@@ -54,3 +54,10 @@ EndogLong2 <- EndoLong1 %>%
   pivot_longer(cols = c(`Number of live births | Instance 0`, `Number of live births | Instance 1`, `Number of live births | Instance 2`, `Number of live births | Instance 3`), 
                names_to = "Number of live births instance", 
                values_to = "Number of live births")
+
+EndogLong3 <- EndogLong2 %>%
+  pivot_longer(
+    cols = 3:4,
+    names_to = "Age at death-instance",
+    values_to = "Age at death"
+  )
