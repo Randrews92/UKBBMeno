@@ -7,6 +7,8 @@ library('tidyverse')
 library('data.table')
 library('lme4')
 library('ggplot2')
+library('tidyr')
+library('dplyr')
 
 install.packages('cli')
 library('cli')
@@ -80,3 +82,57 @@ DF5= DF4 %>% filter(!is.na(ageAtMenarche))
 #NAs --> 0 in live births
 Df6<- Df5%>%
   mutate(livebirths1 = ifelse(is.na(livebirths), 0, livebirths))
+
+mutated_data <- EndogenousLOE_DeathAge_participant %>%
+  mutate(across(starts_with("Age when periods started (menarche)"), as.character),
+         across(starts_with("Number of live births"), as.character),
+         across(starts_with("Age at death"), as.character))
+
+pivoted_data <- mutated_data %>%
+  pivot_longer(
+    cols = starts_with("Had menopause"),
+    names_to = "Had menopause-instance",
+    values_to = "Had menopause"
+  ) %>%
+  pivot_longer(
+    cols = starts_with("Age at menopause"),
+    names_to = "Age at menopause-instance",
+    values_to = "Age at menopause"
+  ) %>%
+  pivot_longer(
+    cols = starts_with("Age when periods started"),
+    names_to = "Age at Menarche instance",
+    values_to = "Age at Menarche"
+  ) %>%
+  pivot_longer(
+    cols = starts_with("Number of live births"),
+    names_to = "Number of live births instance",
+    values_to = "Number of live births"
+  ) %>%
+  pivot_longer(
+    cols = starts_with("Age at death"),
+    names_to = "Age at death-instance",
+    values_to = "Age at death"
+  )
+
+setDT(mutated_data)
+
+id_vars <- c("Participant ID", "Sex")
+
+# Melt Had menopause instances
+had_menopause_vars <- patterns("^Had menopause")
+melted_had_menopause <- melt(mutated_data,
+                             id.vars = id_vars,
+                             measure.vars = had_menopause_vars,
+                             variable.name = "Variable")
+melted_had_menopause[, Instance := gsub(".*_(\\d+)", "\\1", Variable)]
+
+id_vars <- c("Participant ID", "Sex")
+
+# Melt Had menopause instances
+had_menopause_vars <- patterns("^Had menopause")
+melted_Had_menopause <- melt(mutated_data,
+                             id.vars = id_vars,
+                             measure.vars = Had_menopause_vars,
+                             variable.name = "Variable")
+melted_Had_menopause[, Instance := gsub(".*_(\\d+)", "\\1", Variable)]
