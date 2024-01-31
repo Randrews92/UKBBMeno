@@ -115,24 +115,54 @@ pivoted_data <- mutated_data %>%
     values_to = "Age at death"
   )
 
-setDT(mutated_data)
+library(data.table)
 
+
+setDT(mutated_data)  # Convert to data.table
+
+# Specify ID variables
 id_vars <- c("Participant ID", "Sex")
 
-# Melt Had menopause instances
-had_menopause_vars <- patterns("^Had menopause")
+# Melt data for "Had menopause" instances
 melted_had_menopause <- melt(mutated_data,
                              id.vars = id_vars,
-                             measure.vars = had_menopause_vars,
-                             variable.name = "Variable")
-melted_had_menopause[, Instance := gsub(".*_(\\d+)", "\\1", Variable)]
+                             measure.vars = patterns("^Had menopause"),
+                             variable.name = "Had menopause-instance")
+melted_had_menopause[, Instance := gsub(".*_(\\d+)", "\\1", `Had menopause-instance`)]
 
-id_vars <- c("Participant ID", "Sex")
+# Melt data for "Age at menopause" instances
+melted_age_at_menopause <- melt(mutated_data,
+                                id.vars = id_vars,
+                                measure.vars = patterns("^Age at menopause"),
+                                variable.name = "Age at menopause-instance")
+melted_age_at_menopause[, Instance := gsub(".*_(\\d+)", "\\1", `Age at menopause-instance`)]
 
-# Melt Had menopause instances
-had_menopause_vars <- patterns("^Had menopause")
-melted_Had_menopause <- melt(mutated_data,
-                             id.vars = id_vars,
-                             measure.vars = Had_menopause_vars,
-                             variable.name = "Variable")
-melted_Had_menopause[, Instance := gsub(".*_(\\d+)", "\\1", Variable)]
+# Melt data for "Age when periods started" instances
+melted_age_at_menarche <- melt(mutated_data,
+                               id.vars = id_vars,
+                               measure.vars = patterns("^Age when periods started"),
+                               variable.name = "Age at Menarche instance")
+melted_age_at_menarche[, Instance := gsub(".*_(\\d+)", "\\1", `Age at Menarche instance`)]
+
+# Melt data for "Number of live births" instances
+melted_live_births <- melt(mutated_data,
+                           id.vars = id_vars,
+                           measure.vars = patterns("^Number of live births"),
+                           variable.name = "Number of live births instance")
+melted_live_births[, Instance := gsub(".*_(\\d+)", "\\1", `Number of live births instance`)]
+
+# Melt data for "Age at death" instances
+melted_age_at_death <- melt(mutated_data,
+                            id.vars = id_vars,
+                            measure.vars = patterns("^Age at death"),
+                            variable.name = "Age at death-instance")
+melted_age_at_death[, Instance := gsub(".*_(\\d+)", "\\1", `Age at death-instance`)]
+
+# combine tables
+combined_data <- rbindlist(list(melted_had_menopause,
+                                melted_age_at_menopause,
+                                melted_age_at_menarche,
+                                melted_live_births,
+                                melted_age_at_death),
+                           use.names = TRUE, fill = TRUE)
+
