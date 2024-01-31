@@ -174,3 +174,18 @@ combined_data <- rbindlist(list(melted_had_menopause,
                                 melted_age_at_death),
                            use.names = TRUE, fill = TRUE)
 
+library(tidyr)
+
+
+long_data <- mutated_data %>%
+  pivot_longer(
+    cols = starts_with("Had menopause") |
+      starts_with("Age at menopause") |
+      starts_with("Age when periods started (menarche)") |
+      starts_with("Number of live births"),
+    names_to = c(".value", "Instance"),
+    names_pattern = "(.*) \\| Instance ([0-9]+)"
+  )
+
+
+
