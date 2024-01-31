@@ -103,6 +103,10 @@ Cohort <- numeric_data %>%
 
 n_distinct(Df6$ParticipantID)
 
+Cohort <- numeric_data %>%
+  group_by(participantID) %>%
+  summarise(across(c(`Number of live births`, 'Age at death', 'Age at menopause', 'Age at Menarche'), ~max(.), na.rm = TRUE))
+
 #Endogenous LOE:
 Cohort$reproLifespan = Cohort$MenoAge – Cohort$MenarcheAge
 Cohort$endLOE = Cohort$reproLifespan + Cohort$lifebirths
