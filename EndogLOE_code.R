@@ -80,6 +80,12 @@ cdata4 <- cleaned_data3 %>%
   filter(`Age at menopause` != "Do not know")
 cdata5 <- cdata4 %>%
   filter(`Age at Menarche` != "Do not know")
+cdata6 <- cdata5 %>%
+  filter(`Age at Menarche` != "Prefer not to answer")
+cdata7 <- cdata6 %>%
+  filter(`Age at menopause` != "Prefer not to answer")
+cdata8 <- cdata7 %>%
+  filter(`Number of live births` != "Prefer not to answer")
 
 # Convert to numeric form
 numeric_data <- cdata5 %>%
