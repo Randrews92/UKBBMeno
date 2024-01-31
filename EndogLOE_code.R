@@ -90,6 +90,28 @@ numeric_data <- cdata5 %>%
     `Age at death` = as.numeric(`Age at death`)
   )
 
+#Max values:
+Cohort <- numeric_data %>%
+  group_by(participantID) %>%
+  summarise(across(c(`Number of live births`, Ageatdeath, Ageatmenopause, AgeAtMenarche), max, na.rm = TRUE))
+
+n_distinct(Df6$ParticipantID)
+
+#Endogenous LOE:
+Cohort$reproLifespan = Cohort$MenoAge – Cohort$MenarcheAge
+Cohort$endLOE = Cohort$reproLifespan + Cohort$lifebirths
+
+#Regression
+your_model <- lm(endLOE ~ ageAtDeath, data = Cohort)
+
+#Plot
+ggplot(your_data, aes(x = ageAtDeath, y = endLOE)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  labs(title = "Scatter Plot with Linear Regression Line",
+       x = "Age at Death",
+       y = "endLOE")
+
 
 
 #Melt function attempt
