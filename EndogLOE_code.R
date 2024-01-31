@@ -88,7 +88,7 @@ cdata8 <- cdata7 %>%
   filter(`Number of live births` != "Prefer not to answer")
 
 # Convert to numeric form
-numeric_data <- cdata5 %>%
+numeric_data <- cdata8 %>%
   mutate(
     `Age at menopause` = as.numeric(`Age at menopause`),
     `Age at Menarche` = as.numeric(`Age at Menarche`),
