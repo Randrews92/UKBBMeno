@@ -108,8 +108,8 @@ Cohort <- numeric_data %>%
   summarise(across(c(`Number of live births`, 'Age at death', 'Age at menopause', 'Age at Menarche'), ~max(.), na.rm = TRUE))
 
 #Endogenous LOE:
-Cohort$reproLifespan = Cohort$MenoAge – Cohort$MenarcheAge
-Cohort$endLOE = Cohort$reproLifespan + Cohort$lifebirths
+Cohort$reproLifespan = Cohort$Age at menopause – Cohort$Age at Menarche
+Cohort$endLOE = Cohort$reproLifespan + Cohort$Number of live births
 
 #Regression
 your_model <- lm(endLOE ~ ageAtDeath, data = Cohort)
