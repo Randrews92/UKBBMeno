@@ -1,16 +1,42 @@
 
-# run dx donwload to get the Lifestyle_table.csv 
+# run dx download to get the Lifestyle_table6.csv 
 
-# Unload packages with issues 
+install.packages('tidyverse')
+install.packages('data.table')
+install.packages('gtsummary')
+install.packages('ggplot2')
+
+
+# Unload packages with issues if needed 
+search()
+detach("package:magrittr", unload = TRUE)
+detach("package:vctrs", unload = TRUE)
+
+
 
 if ("cli" %in% search()) detach("package:tidyverse", unload = TRUE)
+if ("vctrs" %in% search()) detach("package:vctrs", unload = TRUE)
+if ("tidyverse" %in% search()) detach("package:tidyverse", unload = TRUE)
+if ("ggplot2" %in% search()) detach("package:ggplot2", unload = TRUE)
+if ("gtsummary" %in% search()) detach("package:gtsummary", unload = TRUE)
 
-if ("dplyr" %in% search()) detach("package:dplyr", unload = TRUE)
+# Uninstall
+installed.packages()
+remove.packages("cli")
+remove.packages("vctrs")
 
-install.packages('pacman') # This is a great package which apparently checks whether things need to installed before loadi
+detach("package:cli", unload = TRUE)
+
+
+install.packages('cli') # This is a great package which apparently checks whether things need to installed before loadi
 
 library(pacman)
 pacman::p_load(tidyverse, ggplot2, data.table, gtsummary)
+
+library('dplyr')
+library('gtsummary')
+library('ggplot2')
+
 
 Lifestyle_table <- read.csv("Lifestyle_table.csv")
 
@@ -229,34 +255,36 @@ Lifestyle_table6$AlcoholBaseline <- as.factor(Lifestyle_table6$`Alcohol intake f
 
 #### Calculating diet #####
 # Using the methods above we will begin to create a Diet Score using Instance 0 for the following:
-# Diet score is based on this study's method: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10540665/
+# Diet score is based on this study's method: https://discovery.ucl.ac.uk/id/eprint/10086016/1/PDFsam_merge.pdf
 # "Fresh fruit intake | Instance 0"
 # "Salad / raw vegetable intake | Instance 0"
 # "Cooked vegetable intake | Instance 0"
+# "Dried fruit intake | Instance 0"
 
 # Recode Do not know and prefer not to answer
 
 Lifestyle_table7 <- Lifestyle_table6 %>%
-  mutate(Fresh.fruit.intake...Instance.0 = ifelse(Fresh.fruit.intake...Instance.0 == "Prefer not to answer", NA, Fresh.fruit.intake...Instance.0))
+  mutate(Fresh = ifelse(`Fresh fruit intake | Instance 0` == "Prefer not to answer", NA, `Fresh fruit intake | Instance 0` ))
 
-Lifestyle_table7 <- Lifestyle_table6 %>%
-  mutate(Fresh.fruit.intake...Instance.0 = ifelse(Fresh.fruit.intake...Instance.0 == "Do not know" , NA, Fresh.fruit.intake...Instance.0))
+Lifestyle_table8 <- Lifestyle_table7 %>%
+  mutate(Fresh = ifelse(Fresh== "Do not know" , NA, Fresh ))
 
-Lifestyle_table7 <- Lifestyle_table6 %>%
-  mutate(Fresh.fruit.intake...Instance.0 = ifelse(Fresh.fruit.intake...Instance.0 == "Less than one" , NA, Fresh.fruit.intake...Instance.0))
+Lifestyle_table9 <- Lifestyle_table8 %>%
+  mutate(Fresh= ifelse(Fresh == "Less than one" , NA, Fresh ))
 
 # Do this for:
 # "Salad / raw vegetable intake | Instance 0"
 # "Cooked vegetable intake | Instance 0"
+# "Dried fruit intake | Instance 0"
 
 # Once you've done this convert the variables to numeric
 
-# Add them together using this code (or similar depending on your variable names):
+# Add them together using this code (or similar depending on your variable and table names):
 
 Lifestyle_tableX<- your_data %>%
   group_by(Participant.ID) %>%
-  mutate(DietScore = rowSums(select(., Fresh.fruit.intake...Instance.0, Salad...raw.vegetable.intake...Instance.0,
-                                     Cooked.vegetable.intake...Instance.0), na.rm = TRUE))
+  mutate(DietScore = rowSums(select(., Fresh, Salad,
+                                     Cooked, Dried), na.rm = TRUE))
 
 
 # Remove all other diet variables from the table using the methods above and just keep the DietScore
