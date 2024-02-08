@@ -252,17 +252,35 @@ Lifestyle_table6$AlcoholBaseline <- as.factor(Lifestyle_table6$`Alcohol intake f
 Lifestyle_table7 <- Lifestyle_table6 %>%
   mutate('Fresh fruit intake | Instance 0' = ifelse('Fresh fruit intake | Instance 0' == "Prefer not to answer", NA, 'Fresh fruit intake | Instance 0'))
 
-Lifestyle_table7 <- Lifestyle_table6 %>%
-  mutate(Fresh.fruit.intake...Instance.0 = ifelse(Fresh.fruit.intake...Instance.0 == "Do not know" , NA, Fresh.fruit.intake...Instance.0))
+Lifestyle_table7 <- Lifestyle_table7 %>%
+  mutate('Fresh fruit intake | Instance 0' = ifelse('Fresh fruit intake | Instance 0' == "Do not know" , NA, 'Fresh fruit intake | Instance 0'))
 
-Lifestyle_table7 <- Lifestyle_table6 %>%
-  mutate(Fresh.fruit.intake...Instance.0 = ifelse(Fresh.fruit.intake...Instance.0 == "Less than one" , NA, Fresh.fruit.intake...Instance.0))
+Lifestyle_table7 <- Lifestyle_table7 %>%
+  mutate('Fresh fruit intake | Instance 0' = ifelse('Fresh fruit intake | Instance 0' == "Less than one" , NA, 'Fresh fruit intake | Instance 0'))
 
-# Do this for:
 # "Salad / raw vegetable intake | Instance 0"
+Lifestyle_table7 <- Lifestyle_table7 %>%
+  mutate('Salad / raw vegetable intake | Instance 0' = ifelse('Salad / raw vegetable intake | Instance 0' == "Prefer not to answer", NA, 'Salad / raw vegetable intake | Instance 0'))
+
+Lifestyle_table7 <- Lifestyle_table7 %>%
+  mutate('Salad / raw vegetable intake | Instance 0' = ifelse('Salad / raw vegetable intake | Instance 0' == "Do not know" , NA, 'Salad / raw vegetable intake | Instance 0'))
+
+Lifestyle_table7 <- Lifestyle_table7 %>%
+  mutate('Salad / raw vegetable intake | Instance 0' = ifelse('Salad / raw vegetable intake | Instance 0' == "Less than one" , NA, 'Salad / raw vegetable intake | Instance 0'))
+
 # "Cooked vegetable intake | Instance 0"
+Lifestyle_table7 <- Lifestyle_table7 %>%
+  mutate('Cooked vegetable intake | Instance 0' = ifelse('Cooked vegetable intake | Instance 0' == "Prefer not to answer", NA, 'Cooked vegetable intake | Instance 0'))
+
+Lifestyle_table7 <- Lifestyle_table7 %>%
+  mutate('Cooked vegetable intake | Instance 0' = ifelse('Cooked vegetable intake | Instance 0' == "Do not know" , NA, 'Cooked vegetable intake | Instance 0'))
+
+Lifestyle_table7 <- Lifestyle_table7 %>%
+  mutate('Cooked vegetable intake | Instance 0' = ifelse('Cooked vegetable intake | Instance 0' == "Less than one" , NA, 'Cooked vegetable intake | Instance 0'))
+
 
 # Once you've done this convert the variables to numeric
+
 
 # Add them together using this code (or similar depending on your variable names):
 
