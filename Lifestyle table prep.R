@@ -248,50 +248,210 @@ Lifestyle_table6$AlcoholBaseline <- as.factor(Lifestyle_table6$`Alcohol intake f
 # "Cooked vegetable intake | Instance 0"
 
 # Recode Do not know and prefer not to answer
-
+#Fresh fruit
 Lifestyle_table7 <- Lifestyle_table6 %>%
-  mutate('Fresh fruit intake | Instance 0' = ifelse('Fresh fruit intake | Instance 0' == "Prefer not to answer", NA, 'Fresh fruit intake | Instance 0'))
+  
+  mutate(Fresh = ifelse(`Fresh fruit intake | Instance 0` == "Prefer not to answer", NA, `Fresh fruit intake | Instance 0` ))
 
-Lifestyle_table7 <- Lifestyle_table7 %>%
-  mutate('Fresh fruit intake | Instance 0' = ifelse('Fresh fruit intake | Instance 0' == "Do not know" , NA, 'Fresh fruit intake | Instance 0'))
+Lifestyle_table8 <- Lifestyle_table7 %>%
+  
+  mutate(Fresh = ifelse(Fresh== "Do not know" , NA, Fresh ))
 
-Lifestyle_table7 <- Lifestyle_table7 %>%
-  mutate('Fresh fruit intake | Instance 0' = ifelse('Fresh fruit intake | Instance 0' == "Less than one" , NA, 'Fresh fruit intake | Instance 0'))
+Lifestyle_table9 <- Lifestyle_table8 %>%
+  
+  mutate(Fresh= ifelse(Fresh == "Less than one" , NA, Fresh ))
 
-# "Salad / raw vegetable intake | Instance 0"
-Lifestyle_table7 <- Lifestyle_table7 %>%
-  mutate('Salad / raw vegetable intake | Instance 0' = ifelse('Salad / raw vegetable intake | Instance 0' == "Prefer not to answer", NA, 'Salad / raw vegetable intake | Instance 0'))
+#Salad
+Lifestyle_table10 <- Lifestyle_table9%>%
+  
+  mutate(Salad= ifelse(`Salad / raw vegetable intake | Instance 0` == "Prefer not to answer", NA, `Salad / raw vegetable intake | Instance 0`))
 
-Lifestyle_table7 <- Lifestyle_table7 %>%
-  mutate('Salad / raw vegetable intake | Instance 0' = ifelse('Salad / raw vegetable intake | Instance 0' == "Do not know" , NA, 'Salad / raw vegetable intake | Instance 0'))
+Lifestyle_table11 <- Lifestyle_table10 %>%
+  
+  mutate(Salad = ifelse(Salad== "Do not know" , NA, Salad ))
 
-Lifestyle_table7 <- Lifestyle_table7 %>%
-  mutate('Salad / raw vegetable intake | Instance 0' = ifelse('Salad / raw vegetable intake | Instance 0' == "Less than one" , NA, 'Salad / raw vegetable intake | Instance 0'))
+Lifestyle_table12 <- Lifestyle_table11 %>%
+  
+  mutate(Salad= ifelse(Salad == "Less than one" , NA, Salad ))
 
-# "Cooked vegetable intake | Instance 0"
-Lifestyle_table7 <- Lifestyle_table7 %>%
-  mutate('Cooked vegetable intake | Instance 0' = ifelse('Cooked vegetable intake | Instance 0' == "Prefer not to answer", NA, 'Cooked vegetable intake | Instance 0'))
+#Cooked
+Lifestyle_table13 <- Lifestyle_table12%>%
+  
+  mutate(Cooked= ifelse(`Cooked vegetable intake | Instance 0` == "Prefer not to answer", NA, `Cooked vegetable intake | Instance 0`))
 
-Lifestyle_table7 <- Lifestyle_table7 %>%
-  mutate('Cooked vegetable intake | Instance 0' = ifelse('Cooked vegetable intake | Instance 0' == "Do not know" , NA, 'Cooked vegetable intake | Instance 0'))
+Lifestyle_table14 <- Lifestyle_table13 %>%
+  
+  mutate(Cooked = ifelse(Cooked== "Do not know" , NA, Cooked ))
 
-Lifestyle_table7 <- Lifestyle_table7 %>%
-  mutate('Cooked vegetable intake | Instance 0' = ifelse('Cooked vegetable intake | Instance 0' == "Less than one" , NA, 'Cooked vegetable intake | Instance 0'))
+Lifestyle_table15 <- Lifestyle_table14 %>%
+  
+  mutate(Cooked= ifelse(Cooked == "Less than one" , NA, Cooked ))
+
+#Dried fruit
+Lifestyle_table16 <- Lifestyle_table15%>%
+  
+  mutate(Dried= ifelse(`Dried fruit intake | Instance 0` == "Prefer not to answer", NA, `Dried fruit intake | Instance 0`))
+
+Lifestyle_table17 <- Lifestyle_table16 %>%
+  
+  mutate(Dried = ifelse(Dried== "Do not know" , NA, Dried ))
+
+Lifestyle_table18 <- Lifestyle_table17 %>%
+  
+  mutate(Dried= ifelse(Dried == "Less than one" , NA, Dried ))
 
 
 # Once you've done this convert the variables to numeric
-
+Lifestyle_table19 <- Lifestyle_table18 %>%
+  mutate(across(c(Fresh, Salad, Cooked, Dried), as.numeric))
 
 # Add them together using this code (or similar depending on your variable names):
 
-Lifestyle_tableX<- your_data %>%
-  group_by(Participant.ID) %>%
-  mutate(DietScore = rowSums(select(., Fresh.fruit.intake...Instance.0, Salad...raw.vegetable.intake...Instance.0,
-                                    Cooked.vegetable.intake...Instance.0), na.rm = TRUE))
+library(dplyr)
+
+# Group the data by Participant ID
+grouped_data <- Lifestyle_table19 %>%
+  group_by(`Participant ID`)
+
+#Ensure all are numeric
+grouped_data <- grouped_data %>%
+  mutate(
+    Fresh = as.numeric(Fresh),
+    Salad = as.numeric(Salad),
+    Cooked = as.numeric(Cooked),
+    Dried = as.numeric(Dried)
+  )
+
+# Calculate the Diet Score by summing Fresh, Salad, Cooked, and Dried
+diet_score <- grouped_data %>%
+  rowwise() %>%
+  mutate(DietScore = sum(Fresh, Salad, Cooked, Dried, na.rm = TRUE))
+
+# Check for non-numeric values in Fresh, Salad, Cooked, and Dried columns
+non_numeric_values <- grouped_data %>%
+  summarise(
+    Fresh = any(!is.na(Fresh) & !is.numeric(Fresh)),
+    Salad = any(!is.na(Salad) & !is.numeric(Salad)),
+    Cooked = any(!is.na(Cooked) & !is.numeric(Cooked)),
+    Dried = any(!is.na(Dried) & !is.numeric(Dried))
+  )
+
+# Print non-numeric values
+print(non_numeric_values)
 
 
 # Remove all other diet variables from the table using the methods above and just keep the DietScore
+keyword <- "fish"
+matching_columns <- grep(keyword, names(diet_score), value = TRUE)
+print(matching_columns)
 
+Lifestyle_tableA  <- diet_score  %>%
+  select(-"Oily fish intake | Instance 0",
+         -"Oily fish intake | Instance 1",
+         -"Oily fish intake | Instance 2", 
+         -"Oily fish intake | Instance 3",
+         -"Non-oily fish intake | Instance 0",
+         -"Non-oily fish intake | Instance 1",
+         -"Non-oily fish intake | Instance 2")
+keyword <- "meat"
+matching_columns <- grep(keyword, names(Lifestyle_tableA), value = TRUE)
+print(matching_columns)
+
+Lifestyle_tableB  <- Lifestyle_tableA  %>%
+  select(-"Processed meat intake | Instance 0.x",
+         -"Processed meat intake | Instance 0.y",
+         -"Processed meat intake | Instance 1", 
+         -"Processed meat intake | Instance 2",
+         -"Processed meat intake | Instance 3") 
+keyword <- "intake"
+matching_columns <- grep(keyword, names(Lifestyle_tableB), value = TRUE)
+print(matching_columns)
+
+Lifestyle_tableC  <- Lifestyle_tableB  %>%
+  select(-"Cereal intake | Instance 0",
+         -"Cereal intake | Instance 1",
+         -"Cereal intake | Instance 2", 
+         -"Cereal intake | Instance 3",
+         -"Bread intake | Instance 0.x",
+         -"Bread intake | Instance 0.y",
+         -"Bread intake | Instance 1",
+         -"Bread intake | Instance 2",
+         -"Bread intake | Instance 3",
+         -"Cheese intake | Instance 0",
+         -"Cheese intake | Instance 1",
+         -"Cheese intake | Instance 2",
+         -"Cheese intake | Instance 3")
+
+keyword <- "intake"
+matching_columns <- grep(keyword, names(Lifestyle_tableC), value = TRUE)
+print(matching_columns)
+
+Lifestyle_tableD  <- Lifestyle_tableC  %>%
+  select(-"Pork intake | Instance 0",
+         -"Pork intake | Instance 1",
+         -"Pork intake | Instance 2", 
+         -"Pork intake | Instance 3",
+         -"Lamb/mutton intake | Instance 0",
+         -"Lamb/mutton intake | Instance 1",
+         -"Lamb/mutton intake | Instance 2",
+         -"Lamb/mutton intake | Instance 3",
+         -"Beef intake | Instance 0",
+         -"Beef intake | Instance 1",
+         -"Beef intake | Instance 2",
+         -"Beef intake | Instance 3",
+         -"Poultry intake | Instance 0",
+         -"Poultry intake | Instance 1",
+         -"Poultry intake | Instance 2",
+         -"Poultry intake | Instance 3",
+         -"Dried fruit intake | Instance 0",
+         -"Dried fruit intake | Instance 1",
+         -"Dried fruit intake | Instance 2",
+         -"Dried fruit intake | Instance 3",
+         -"Fresh fruit intake | Instance 0",
+         -"Fresh fruit intake | Instance 1",
+         -"Fresh fruit intake | Instance 2",
+         -"Fresh fruit intake | Instance 3",
+         -"Salad / raw vegetable intake | Instance 0",
+         -"Salad / raw vegetable intake | Instance 1",
+         -"Salad / raw vegetable intake | Instance 2",
+         -"Salad / raw vegetable intake | Instance 3",
+         -"Cooked vegetable intake | Instance 0",
+         -"Cooked vegetable intake | Instance 1",
+         -"Cooked vegetable intake | Instance 2",
+         -"Cooked vegetable intake | Instance 3")
+
+keyword <- "type"
+matching_columns <- grep(keyword, names(Lifestyle_tableD), value = TRUE)
+print(matching_columns)
+
+Lifestyle_tableE  <- Lifestyle_tableD  %>%
+  select(-"Milk type used | Instance 0",
+         -"Milk type used | Instance 1",
+         -"Milk type used | Instance 2", 
+         -"Bread type | Instance 0",
+         -"Bread type | Instance 1",
+         -"Bread type | Instance 2",
+         -"Bread type | Instance 3",
+         -"Cereal type | Instance 0",
+         -"Cereal type | Instance 1",
+         -"Cereal type | Instance 2",
+         -"Cereal type | Instance 3")
+
+keyword <- "Variation"
+matching_columns <- grep(keyword, names(Lifestyle_tableE), value = TRUE)
+print(matching_columns)
+
+Lifestyle_tableF  <- Lifestyle_tableE  %>%
+  select(-"Variation in diet | Instance 0",
+         -"Variation in diet | Instance 1",
+         -"Variation in diet | Instance 2", 
+         -"Variation in diet | Instance 3")
+
+Lifestyle_tableG  <- Lifestyle_tableF  %>%
+  select(-"Fresh",
+         -"Cooked",
+         -"Dried", 
+         -"Salad")
 ### LOE ###
 # Using the methods described on this script, and the methods used in EndogLOE_code.R merge columns on:
 # age at menopause (merge all instances so there's one age at menopause column)
