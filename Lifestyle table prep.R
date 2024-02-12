@@ -454,7 +454,44 @@ Lifestyle_tableG  <- Lifestyle_tableF  %>%
          -"Salad")
 ### LOE ###
 # Using the methods described on this script, and the methods used in EndogLOE_code.R merge columns on:
+
 # age at menopause (merge all instances so there's one age at menopause column)
+mutated_data <- Lifestyle_tableG %>%
+  mutate(across(starts_with("Age at menopause"), as.numeric))
+Lifestyle_table_meno <- mutated_data %>%
+  mutate(menopauseAge = rowMeans(select(., starts_with("Age at menopause")), na.rm = TRUE))
+
+n_distinct(Lifestyle_table_meno$`Participant ID`)
+
+keyword <- "Age at menopause"
+matching_columns <- grep(keyword, names(Lifestyle_table_meno), value = TRUE)
+print(matching_columns)
+
+Lifestyle_tableH  <- Lifestyle_table_meno  %>%
+  select(-"Age at menopause (last menstrual period) | Instance 0",
+         -"Age at menopause (last menstrual period) | Instance 1",
+         -"Age at menopause (last menstrual period) | Instance 2",
+         -"Age at menopause (last menstrual period) | Instance 3")
+
+# age when periods started
+mutated_data2 <- Lifestyle_tableH %>%
+  mutate(across(starts_with("Age when periods started (menarche)"), as.numeric))
+Lifestyle_tableI <- mutated_data2 %>%
+  mutate(menarcheAge = rowMeans(select(., starts_with("Age when periods started (menarche)")), na.rm = TRUE))
+
+n_distinct(Lifestyle_table_meno$`Participant ID`)
+
+keyword <- "Age when periods"
+matching_columns <- grep(keyword, names(Lifestyle_tableI), value = TRUE)
+print(matching_columns)
+
+Lifestyle_tableJ  <- Lifestyle_tableI  %>%
+  select(-"Age when periods started (menarche) | Instance 0",
+         -"Age when periods started (menarche) | Instance 1",
+         -"Age when periods started (menarche) | Instance 2",
+         -"Age when periods started (menarche) | Instance 3")
+
+# Number of children born (get max value before merge as shown in Qualifications section above)
 keyword <- "Age at menopause"
 matching_columns <- grep(keyword, names(Lifestyle_tableG), value = TRUE)
 print(matching_columns)
@@ -549,10 +586,6 @@ Lifestyle_table1  <- Lifestyle_table  %>%
          -"Qualifications | Instance 1", 
          -"Qualifications | Instance 2",
          -"Qualifications | Instance 3")
-# age when periods started
-
-# Number of children born (get max value before merge as shown in Qualifications section above)
-
 # age at bilateral oophorectomy 
 
 
