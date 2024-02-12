@@ -455,6 +455,102 @@ Lifestyle_tableG  <- Lifestyle_tableF  %>%
 ### LOE ###
 # Using the methods described on this script, and the methods used in EndogLOE_code.R merge columns on:
 # age at menopause (merge all instances so there's one age at menopause column)
+keyword <- "Age at menopause"
+matching_columns <- grep(keyword, names(Lifestyle_tableG), value = TRUE)
+print(matching_columns)
+
+columns_to_convert <- c("Age at menopause (last menstrual period) | Instance 0", 
+                        "Age at menopause (last menstrual period) | Instance 1", 
+                        "Age at menopause (last menstrual period) | Instance 2",
+                        "Age at menopause (last menstrual period) | Instance 3")
+
+# Use lapply to apply factor() to selected columns
+Lifestyle_tableG[columns_to_convert] <- lapply(Lifestyle_tableG[columns_to_convert], factor)
+
+# Then we will find the levels in these columns:
+
+# Get levels of each factor column
+levels(Lifestyle_tableG$`Age at menopause (last menstrual period)`)
+levels(Lifestyle_tableG$`Age at menopause (last menstrual period)`)
+levels(Lifestyle_tableG$`Age at menopause (last menstrual period)`)
+levels(Lifestyle_tableG$`Age at menopause (last menstrual period)`)
+
+# All have the same values
+
+# Create a data frame with all Qualifications and instances in long format:
+# First subset ID and qualifications data
+subset_data <- Lifestyle_tableG %>%
+  select(`Participant ID`,
+         `Age at menopause (last menstrual period) | Instance 0`,
+         `Age at menopause (last menstrual period) | Instance 1`,
+         `Age at menopause (last menstrual period) | Instance 2`,
+         `Age at menopause (last menstrual period) | Instance 3`)
+
+long_quals <- subset_data %>%
+  pivot_longer(
+    cols = starts_with("Age at menopause"),
+    names_to = c(".value", "Instance"),
+    names_pattern = "(.*) \\| Instance ([0-9]+)")
+
+# Get levels 
+levels(long_quals$`Age at menopause (last menstrual period)`)
+
+# All quals for each participant is on one row, we want them on multiple rows so we can score them:
+long_quals<- long_quals %>%
+  separate_rows(Qualifications, sep = "\\|") %>%
+  mutate(Qualifications = trimws(Qualifications))
+
+#
+
+# Create a Qualifications score with 5 highest and 0 lowest quals
+
+long_quals$Qualifications <- ifelse(
+  grepl("College or University degree", long_quals$Qualifications), 5,
+  ifelse(grepl("A levels/AS levels or equivalent", long_quals$Qualifications), 4,
+         ifelse(grepl("NVQ or HND or HNC or equivalent", long_quals$Qualifications), 3,
+                ifelse(grepl("O levels/GCSEs or equivalent", long_quals$Qualifications), 2,
+                       ifelse(grepl("CSEs or equivalent", long_quals$Qualifications), 1,
+                              ifelse(grepl("Other professional qualifications eg: nursing, teaching", long_quals$Qualifications), 5,
+                                     ifelse(grepl("None of the above", long_quals$Qualifications), 0, long_quals$Qualifications)
+                              )
+                       )
+                )
+         )
+  )
+)
+
+# Get the Max qualification score per ID:
+
+max_qual_scores <- long_quals %>%
+  group_by(`Participant ID`) %>%
+  summarise(Qualifications = max(Qualifications, na.rm = TRUE))
+
+# Format 'Prefer not to answer as NA'
+
+max_qual_scores <- max_qual_scores %>%
+  mutate(Qualifications = ifelse(Qualifications == "Prefer not to answer", NA, Qualifications))
+
+# Format Qualifciations as a number
+
+max_qual_scores$Qualifications <- as.numeric(max_qual_scores$Qualifications)
+
+#Rename to Qual_score
+
+max_qual_scores$QualScore <- max_qual_scores$Qualifications
+
+# Join QualScore back onto main dataset:
+
+Lifestyle_table <- setDT(Lifestyle_table)[setDT(max_qual_scores), QualScore := i.QualScore, on=c("`Participant ID`" )]
+
+# Remove the old qual variables:
+
+Lifestyle_table1  <- Lifestyle_table  %>%
+  select(-"Qualifications | Instance 0", 
+         -"Qualifications | Instance 1", 
+         -"Qualifications | Instance 2",
+         -"Qualifications | Instance 3")
 # age when periods started
+
 # Number of children born (get max value before merge as shown in Qualifications section above)
+
 # age at bilateral oophorectomy 
