@@ -554,3 +554,9 @@ Lifestyle_table1  <- Lifestyle_table  %>%
 # Number of children born (get max value before merge as shown in Qualifications section above)
 
 # age at bilateral oophorectomy 
+
+
+
+write.csv(Lifestyle_tableG, file= 'Lifestyle_tableG.csv')
+#dx upload Lifestyle_tableG.csv
+
