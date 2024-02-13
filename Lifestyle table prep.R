@@ -492,7 +492,7 @@ Lifestyle_tableJ  <- Lifestyle_tableI  %>%
 
 # Number of children born (get max value before merge as shown in Qualifications section above)
 keyword <- "Number of live births"
-matching_columns <- grep(keyword, names(Lifestyle_tableG), value = TRUE)
+matching_columns <- grep(keyword, names(Lifestyle_tableJ), value = TRUE)
 print(matching_columns)
 
 columns_to_convert <- c("Number of live births | Instance 0", 
@@ -550,7 +550,6 @@ max_birth_scores2 <- max_birth_scores %>%
 
 max_birth_scores2$'Number of live births' <- as.numeric(max_birth_scores2$'Number of live births')
 
-
 # Join back onto main dataset:
 
 Lifestyle_tableJ <- setDT(Lifestyle_tableJ)[setDT(max_birth_scores2), `Number of live births` := `Number of live births`, on = .(`Participant ID`)]
@@ -559,14 +558,29 @@ Lifestyle_tableJ <- setDT(Lifestyle_tableJ)[setDT(max_birth_scores2), `Number of
 
 Lifestyle_tableK  <- Lifestyle_tableJ  %>%
   select(-`Number of live births | Instance 0`,
-         `Number of live births | Instance 1`,
-         `Number of live births | Instance 2`,
-         `Number of live births | Instance 3`)
+         -`Number of live births | Instance 1`,
+         -`Number of live births | Instance 2`,
+         -`Number of live births | Instance 3`)
 
 # age at bilateral oophorectomy 
+mutated_data <- Lifestyle_tableK %>%
+  mutate(across(starts_with("Age at bilateral oophorectomy"), as.numeric))
+Lifestyle_tableL <- mutated_data %>%
+  mutate(bilateral_oophorectomyAge = rowMeans(select(., starts_with("Age at bilateral oophorectomy")), na.rm = TRUE))
+
+n_distinct(Lifestyle_tableL$`Participant ID`)
+
+keyword <- "oophorectomy"
+matching_columns <- grep(keyword, names(Lifestyle_tableK), value = TRUE)
+print(matching_columns)
+
+Lifestyle_tableM  <- Lifestyle_tableL  %>%
+  select(-"Age at bilateral oophorectomy (both ovaries removed) | Instance 0",
+         -"Age at bilateral oophorectomy (both ovaries removed) | Instance 1",
+         -"Age at bilateral oophorectomy (both ovaries removed) | Instance 2",
+         -"Age at bilateral oophorectomy (both ovaries removed) | Instance 3")
 
 
-
-write.csv(Lifestyle_tableK, file= 'Lifestyle_tableK.csv')
-#dx upload Lifestyle_tableK.csv
+write.csv(Lifestyle_tableM, file= 'Lifestyle_tableM.csv')
+#dx upload Lifestyle_tableM.csv
 
