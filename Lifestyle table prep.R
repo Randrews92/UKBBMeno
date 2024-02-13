@@ -1,5 +1,4 @@
-
-# run dx donwload to get the Lifestyle_table.csv 
+# run dx download to get the Lifestyle_table.csv 
 
 install.packages('tidyverse')
 install.packages('data.table')
@@ -492,104 +491,82 @@ Lifestyle_tableJ  <- Lifestyle_tableI  %>%
          -"Age when periods started (menarche) | Instance 3")
 
 # Number of children born (get max value before merge as shown in Qualifications section above)
-keyword <- "Age at menopause"
+keyword <- "Number of live births"
 matching_columns <- grep(keyword, names(Lifestyle_tableG), value = TRUE)
 print(matching_columns)
 
-columns_to_convert <- c("Age at menopause (last menstrual period) | Instance 0", 
-                        "Age at menopause (last menstrual period) | Instance 1", 
-                        "Age at menopause (last menstrual period) | Instance 2",
-                        "Age at menopause (last menstrual period) | Instance 3")
+columns_to_convert <- c("Number of live births | Instance 0", 
+                        "Number of live births | Instance 1", 
+                        "Number of live births | Instance 2",
+                        "Number of live births | Instance 3")
 
 # Use lapply to apply factor() to selected columns
-Lifestyle_tableG[columns_to_convert] <- lapply(Lifestyle_tableG[columns_to_convert], factor)
+Lifestyle_tableJ[columns_to_convert] <- lapply(Lifestyle_tableJ[columns_to_convert], factor)
 
 # Then we will find the levels in these columns:
 
 # Get levels of each factor column
-levels(Lifestyle_tableG$`Age at menopause (last menstrual period)`)
-levels(Lifestyle_tableG$`Age at menopause (last menstrual period)`)
-levels(Lifestyle_tableG$`Age at menopause (last menstrual period)`)
-levels(Lifestyle_tableG$`Age at menopause (last menstrual period)`)
+levels(Lifestyle_tableJ$`Number of live births | Instance 0`)
+levels(Lifestyle_tableJ$`Number of live births | Instance 1`)
+levels(Lifestyle_tableJ$`Number of live births | Instance 2`)
+levels(Lifestyle_tableJ$`Number of live births | Instance 3`)
 
 # All have the same values
 
-# Create a data frame with all Qualifications and instances in long format:
-# First subset ID and qualifications data
-subset_data <- Lifestyle_tableG %>%
+# Create a data frame with all instances in long format:
+# First subset ID and birth data
+subset_data <- Lifestyle_tableJ %>%
   select(`Participant ID`,
-         `Age at menopause (last menstrual period) | Instance 0`,
-         `Age at menopause (last menstrual period) | Instance 1`,
-         `Age at menopause (last menstrual period) | Instance 2`,
-         `Age at menopause (last menstrual period) | Instance 3`)
+         `Number of live births | Instance 0`,
+         `Number of live births | Instance 1`,
+         `Number of live births | Instance 2`,
+         `Number of live births | Instance 3`)
 
-long_quals <- subset_data %>%
+long_births <- subset_data %>%
   pivot_longer(
-    cols = starts_with("Age at menopause"),
+    cols = starts_with("Number of live births"),
     names_to = c(".value", "Instance"),
     names_pattern = "(.*) \\| Instance ([0-9]+)")
 
 # Get levels 
-levels(long_quals$`Age at menopause (last menstrual period)`)
+levels(long_births$`Number of live births`)
 
-# All quals for each participant is on one row, we want them on multiple rows so we can score them:
-long_quals<- long_quals %>%
-  separate_rows(Qualifications, sep = "\\|") %>%
-  mutate(Qualifications = trimws(Qualifications))
+# All births for each participant is on one row, we want them on multiple rows so we can score them:
+long_births<- long_births %>%
+  separate_rows(`Number of live births`, sep = "\\|") %>%
+  mutate(`Number of live births` = trimws(`Number of live births`))
 
-#
-
-# Create a Qualifications score with 5 highest and 0 lowest quals
-
-long_quals$Qualifications <- ifelse(
-  grepl("College or University degree", long_quals$Qualifications), 5,
-  ifelse(grepl("A levels/AS levels or equivalent", long_quals$Qualifications), 4,
-         ifelse(grepl("NVQ or HND or HNC or equivalent", long_quals$Qualifications), 3,
-                ifelse(grepl("O levels/GCSEs or equivalent", long_quals$Qualifications), 2,
-                       ifelse(grepl("CSEs or equivalent", long_quals$Qualifications), 1,
-                              ifelse(grepl("Other professional qualifications eg: nursing, teaching", long_quals$Qualifications), 5,
-                                     ifelse(grepl("None of the above", long_quals$Qualifications), 0, long_quals$Qualifications)
-                              )
-                       )
-                )
-         )
-  )
-)
-
-# Get the Max qualification score per ID:
-
-max_qual_scores <- long_quals %>%
+# Get the Max per ID:
+max_birth_scores <- long_births %>%
   group_by(`Participant ID`) %>%
-  summarise(Qualifications = max(Qualifications, na.rm = TRUE))
+  summarise(`Number of live births` = max(`Number of live births`, na.rm = TRUE))
+
 
 # Format 'Prefer not to answer as NA'
+max_birth_scores2 <- max_birth_scores %>%
+  mutate(`Number of live births` = ifelse(`Number of live births` == "Prefer not to answer", NA, `Number of live births`))
 
-max_qual_scores <- max_qual_scores %>%
-  mutate(Qualifications = ifelse(Qualifications == "Prefer not to answer", NA, Qualifications))
+# Format as a number
 
-# Format Qualifciations as a number
+max_birth_scores2$'Number of live births' <- as.numeric(max_birth_scores2$'Number of live births')
 
-max_qual_scores$Qualifications <- as.numeric(max_qual_scores$Qualifications)
 
-#Rename to Qual_score
+# Join back onto main dataset:
 
-max_qual_scores$QualScore <- max_qual_scores$Qualifications
+Lifestyle_tableJ <- setDT(Lifestyle_tableJ)[setDT(max_birth_scores2), `Number of live births` := `Number of live births`, on = .(`Participant ID`)]
 
-# Join QualScore back onto main dataset:
+# Remove the old variables:
 
-Lifestyle_table <- setDT(Lifestyle_table)[setDT(max_qual_scores), QualScore := i.QualScore, on=c("`Participant ID`" )]
+Lifestyle_tableK  <- Lifestyle_tableJ  %>%
+  select(-`Number of live births | Instance 0`,
+         `Number of live births | Instance 1`,
+         `Number of live births | Instance 2`,
+         `Number of live births | Instance 3`)
 
-# Remove the old qual variables:
-
-Lifestyle_table1  <- Lifestyle_table  %>%
-  select(-"Qualifications | Instance 0", 
-         -"Qualifications | Instance 1", 
-         -"Qualifications | Instance 2",
-         -"Qualifications | Instance 3")
 # age at bilateral oophorectomy 
 
 
 
-write.csv(Lifestyle_tableG, file= 'Lifestyle_tableG.csv')
-#dx upload Lifestyle_tableG.csv
+write.csv(Lifestyle_tableK, file= 'Lifestyle_tableK.csv')
+#dx upload Lifestyle_tableK.csv
 
