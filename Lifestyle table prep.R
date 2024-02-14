@@ -6,12 +6,7 @@ install.packages('gtsummary')
 install.packages('ggplot2')
 install.packages('tidyr')
 
-library('tidyverse')
-library('dplyr')
-library('data.table')
-library('gtsummary')
-library('ggplot2')
-library('tidyr')
+
 
 # Unload packages with issues 
 
@@ -580,7 +575,266 @@ Lifestyle_tableM  <- Lifestyle_tableL  %>%
          -"Age at bilateral oophorectomy (both ovaries removed) | Instance 2",
          -"Age at bilateral oophorectomy (both ovaries removed) | Instance 3")
 
+#Removing more tables:
+Lifestyle_tableN  <- Lifestyle_tableM  %>%
+  select(-"...1",
+         -"...2",
+         -"...3",
+         -"...4",
+         -"...5",
+         -"...6")
 
-write.csv(Lifestyle_tableM, file= 'Lifestyle_tableM.csv')
-#dx upload Lifestyle_tableM.csv
+keyword <- "Smoking"
+matching_columns <- grep(keyword, names(Lifestyle_tableN), value = TRUE)
+print(matching_columns)
+
+Lifestyle_tableO  <- Lifestyle_tableN  %>%
+  select(-"Smoking status | Instance 0",
+         -"Smoking status | Instance 1",
+         -"Smoking status | Instance 2",
+         -"Smoking status | Instance 3")
+
+Lifestyle_tableP  <- Lifestyle_tableO  %>%
+  select(-"Alcohol intake frequency. | Instance 0",
+         -"Alcohol intake frequency. | Instance 1",
+         -"Alcohol intake frequency. | Instance 2",
+         -"Alcohol intake frequency. | Instance 3")
+
+keyword <- "activity"
+matching_columns <- grep(keyword, names(Lifestyle_tableP), value = TRUE)
+print(matching_columns)
+
+Lifestyle_tableQ  <- Lifestyle_tableP  %>%
+  select(-"Duration of moderate activity | Instance 1",
+         -"Duration of moderate activity | Instance 0",
+         -"Duration of moderate activity | Instance 2",
+         -"Duration of moderate activity | Instance 3",
+         -"Duration of vigorous activity | Instance 0",
+         -"Duration of vigorous activity | Instance 2",
+         -"Duration of vigorous activity | Instance 3",
+         -"Duration of vigorous physical activity (pilot) | Instance 0",
+         -"Usual walking pace | Instance 0",
+         -"Usual walking pace | Instance 1",
+         -"Usual walking pace | Instance 2",
+         -"Usual walking pace | Instance 3")
+
+keyword <- "termination"
+matching_columns <- grep(keyword, names(Lifestyle_tableQ), value = TRUE)
+print(matching_columns)
+
+Lifestyle_tableR  <- Lifestyle_tableQ  %>%
+  select(-"Ever had stillbirth, spontaneous miscarriage or termination | Instance 0",
+         -"Ever had stillbirth, spontaneous miscarriage or termination | Instance 1",
+         -"Ever had stillbirth, spontaneous miscarriage or termination | Instance 2",
+         -"Ever had stillbirth, spontaneous miscarriage or termination | Instance 3",
+         -"Number of stillbirths | Instance 0",
+         -"Number of stillbirths | Instance 1",
+         -"Number of stillbirths | Instance 2",
+         -"Number of stillbirths | Instance 3",
+         -"Number of spontaneous miscarriages | Instance 0",
+         -"Number of spontaneous miscarriages | Instance 1",
+         -"Number of spontaneous miscarriages | Instance 2",
+         -"Number of spontaneous miscarriages | Instance 3",
+         -"Number of pregnancy terminations | Instance 0",
+         -"Number of pregnancy terminations | Instance 1",
+         -"Number of pregnancy terminations | Instance 2",
+         -"Number of pregnancy terminations | Instance 3")
+
+keyword <- "oophorectomy"
+matching_columns <- grep(keyword, names(Lifestyle_tableP), value = TRUE)
+print(matching_columns)
+
+Lifestyle_tableS  <- Lifestyle_tableR  %>%
+  select(-"Ever had hysterectomy (womb removed) | Instance 1",
+         -"Ever had hysterectomy (womb removed) | Instance 0",
+         -"Ever had hysterectomy (womb removed) | Instance 2",
+         -"Ever had hysterectomy (womb removed) | Instance 3",
+         -"Age at hysterectomy | Instance 0",
+         -"Age at hysterectomy | Instance 2",
+         -"Age at hysterectomy | Instance 3",
+         -"Age at hysterectomy | Instance 1",
+         -"Bilateral oophorectomy (both ovaries removed) | Instance 0",
+         -"Bilateral oophorectomy (both ovaries removed) | Instance 1",
+         -"Bilateral oophorectomy (both ovaries removed) | Instance 2",
+         -"Bilateral oophorectomy (both ovaries removed) | Instance 3")
+
+keyword <- "mass index"
+matching_columns <- grep(keyword, names(Lifestyle_tableP), value = TRUE)
+print(matching_columns)
+
+Lifestyle_tableT  <- Lifestyle_tableS  %>%
+  select(-"Body mass index (BMI) | Instance 1",
+         -"Body mass index (BMI) | Instance 3",
+         -"Body mass index (BMI) | Instance 2")
+
+keyword <- "Nap"
+matching_columns <- grep(keyword, names(Lifestyle_tableP), value = TRUE)
+print(matching_columns)
+
+Lifestyle_tableU  <- Lifestyle_tableT  %>%
+  select(-"Sleep duration | Instance 1",
+         -"Sleep duration | Instance 3",
+         -"Sleep duration | Instance 2",
+         -"Sleeplessness / insomnia | Instance 1",
+         -"Sleeplessness / insomnia | Instance 3",
+         -"Sleeplessness / insomnia | Instance 2",
+         -"Daytime dozing / sleeping | Instance 0",
+         -"Daytime dozing / sleeping | Instance 1",
+         -"Daytime dozing / sleeping | Instance 2",
+         -"Daytime dozing / sleeping | Instance 3",
+         -"Morning/evening person (chronotype) | Instance 0",
+         -"Morning/evening person (chronotype) | Instance 1",
+         -"Morning/evening person (chronotype) | Instance 2",
+         -"Morning/evening person (chronotype) | Instance 3",
+         -"Getting up in morning | Instance 0",
+         -"Getting up in morning | Instance 1",
+         -"Getting up in morning | Instance 2",
+         -"Getting up in morning | Instance 3",
+         -"Nap during day | Instance 0",
+         -"Nap during day | Instance 1",
+         -"Nap during day | Instance 2",
+         -"Nap during day | Instance 3")
+
+keyword <- "Diastolic"
+matching_columns <- grep(keyword, names(Lifestyle_tableP), value = TRUE)
+print(matching_columns)
+
+Lifestyle_tableV  <- Lifestyle_tableU  %>%
+  select(-"Systolic blood pressure, automated reading | Instance 0 | Array 0",
+         -"Systolic blood pressure, automated reading | Instance 0 | Array 1",
+         -"Systolic blood pressure, automated reading | Instance 1 | Array 0",
+         -"Systolic blood pressure, automated reading | Instance 1 | Array 1",
+         -"Systolic blood pressure, automated reading | Instance 2 | Array 0",
+         -"Systolic blood pressure, automated reading | Instance 2 | Array 1",
+         -"Systolic blood pressure, automated reading | Instance 3 | Array 0",
+         -"Systolic blood pressure, automated reading | Instance 3 | Array 1",
+         -"Systolic blood pressure, manual reading | Instance 0 | Array 0",   
+         -"Systolic blood pressure, manual reading | Instance 1 | Array 0",   
+         -"Systolic blood pressure, manual reading | Instance 0 | Array 1",   
+         -"Systolic blood pressure, manual reading | Instance 1 | Array 1",   
+         -"Systolic blood pressure, manual reading | Instance 2 | Array 0",   
+         -"Systolic blood pressure, manual reading | Instance 2 | Array 1",   
+         -"Systolic blood pressure, manual reading | Instance 3 | Array 0",   
+         -"Systolic blood pressure, manual reading | Instance 3 | Array 1",
+         -"Diastolic blood pressure, automated reading | Instance 0 | Array 0",
+         -"Diastolic blood pressure, automated reading | Instance 0 | Array 1",
+         -"Diastolic blood pressure, automated reading | Instance 1 | Array 0",
+         -"Diastolic blood pressure, automated reading | Instance 1 | Array 1",
+         -"Diastolic blood pressure, automated reading | Instance 2 | Array 0",
+         -"Diastolic blood pressure, automated reading | Instance 2 | Array 1",
+         -"Diastolic blood pressure, automated reading | Instance 3 | Array 0",
+         -"Diastolic blood pressure, automated reading | Instance 3 | Array 1",
+         -"Diastolic blood pressure, manual reading | Instance 0 | Array 0",   
+         -"Diastolic blood pressure, manual reading | Instance 1 | Array 0",   
+         -"Diastolic blood pressure, manual reading | Instance 0 | Array 1",   
+         -"Diastolic blood pressure, manual reading | Instance 1 | Array 1",   
+         -"Diastolic blood pressure, manual reading | Instance 2 | Array 0",   
+         -"Diastolic blood pressure, manual reading | Instance 2 | Array 1",   
+         -"Diastolic blood pressure, manual reading | Instance 3 | Array 0",   
+         -"Diastolic blood pressure, manual reading | Instance 3 | Array 1")
+
+keyword <- "Number of treatment"
+matching_columns <- grep(keyword, names(Lifestyle_tableP), value = TRUE)
+print(matching_columns)
+
+Lifestyle_tableW  <- Lifestyle_tableV  %>%
+  select(-"Number of treatments/medications taken | Instance 1",
+         -"Number of treatments/medications taken | Instance 3",
+         -"Number of treatments/medications taken | Instance 2")
+
+#Combining instances:
+#Had menopause
+library(dplyr)
+
+New_table <- Lifestyle_tableW %>%
+  select("Participant ID", starts_with("Had menopause |"))
+
+New_table1 <- New_table %>%
+  mutate_at(vars(starts_with("Had menopause")), ~replace(., . %in% c("No", "Prefer not to answer"), NA))
+
+long_table <- New_table1 %>%
+  pivot_longer(
+    cols = starts_with("Had menopause"),
+    names_to = c(".value", "Instance"),
+    names_pattern = "(.*) \\| Instance ([0-9]+)")
+
+long_table$score <- ifelse(
+  grepl("Yes", long_table$'Had menopause'), 4,
+  ifelse(grepl("Not sure - had a hysterectomy", long_table$'Had menopause'), 3,
+         ifelse(grepl("Not sure - other reason", long_table$'Had menopause'), 2,
+                ifelse(grepl("NA", long_table$'Had menopause'), 1, NA)
+         )
+  )
+)
+
+max_meno_scores <- long_table %>%
+  group_by(`Participant ID`) %>%
+  summarise(score = max(score, na.rm = TRUE))
+
+hadmeno_table <- max_meno_scores %>%
+  mutate(score = case_when(
+    score == 4 ~ "Yes",
+    score == 3 ~ "Not sure - had a hysterectomy",
+    score == 2 ~ "Not sure - other reason",
+    is.infinite(score) ~ NA_character_,
+    TRUE ~ as.character(score)
+  )) %>%
+  rename("Had menopause" = score)
+
+Lifestyle_tableX <- left_join(Lifestyle_tableW, hadmeno_table, by = "Participant ID")
+
+keyword <- "Had menopause"
+matching_columns <- grep(keyword, names(Lifestyle_tableX), value = TRUE)
+print(matching_columns)
+
+Lifestyle_tableX  <- Lifestyle_tableX  %>%
+  select(-"Had menopause | Instance 0",
+         -"Had menopause | Instance 1",
+         -"Had menopause | Instance 2",
+         -"Had menopause | Instance 3")
+
+#Ever used the contraceptive pill
+Contra_table <- Lifestyle_tableX %>%
+  select("Participant ID", starts_with("Ever taken oral"))
+
+Contra_table1 <- Contra_table %>%
+  mutate_at(vars(starts_with("Ever taken oral")), ~replace(., . %in% c("No", "Prefer not to answer", "Do not know"), NA))
+
+long_Contra <- Contra_table1 %>%
+  pivot_longer(
+    cols = starts_with("Ever taken oral"),
+    names_to = c(".value", "Instance"),
+    names_pattern = "(.*) \\| Instance ([0-9]+)")
+
+long_Contra$score <- ifelse(
+  grepl("Yes", long_Contra$'Ever taken oral contraceptive pill'), 2,
+            ifelse(grepl("NA", long_Contra$'Ever taken oral contraceptive pill'), 1, NA)
+         )
+
+Contra_scores <- long_Contra %>%
+  group_by(`Participant ID`) %>%
+  summarise(score = max(score, na.rm = TRUE))
+
+Contrapill_table <- Contra_scores %>%
+  mutate(score = case_when(
+    score == 2 ~ "Yes",
+    is.infinite(score) ~ NA_character_,
+    TRUE ~ as.character(score)
+  )) %>%
+  rename("Ever taken oral contraceptive pill" = score)
+
+Lifestyle_tableY <- left_join(Lifestyle_tableX, Contrapill_table, by = "Participant ID")
+
+Lifestyle_tableY  <- Lifestyle_tableY  %>%
+  select(-"Ever taken oral contraceptive pill | Instance 0",
+         -"Ever taken oral contraceptive pill | Instance 1",
+         -"Ever taken oral contraceptive pill | Instance 2",
+         -"Ever taken oral contraceptive pill | Instance 3")
+
+#Ever used HRT
+
+#Ever used supplements
+
+write.csv(Lifestyle_tableY, file= 'Lifestyle_tableY.csv')
+#dx upload Lifestyle_tableY.csv
 
