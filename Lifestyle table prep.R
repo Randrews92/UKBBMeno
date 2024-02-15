@@ -6,7 +6,12 @@ install.packages('gtsummary')
 install.packages('ggplot2')
 install.packages('tidyr')
 
-
+library('tidyverse')
+library('data.table')
+library('gtsummary')
+library('dplyr')
+library('tidyr')
+library('ggplot2')
 
 # Unload packages with issues 
 
@@ -832,9 +837,82 @@ Lifestyle_tableY  <- Lifestyle_tableY  %>%
          -"Ever taken oral contraceptive pill | Instance 3")
 
 #Ever used HRT
+HRT_table <- Lifestyle_tableY %>%
+  select("Participant ID", starts_with("Ever used hormone"))
+
+HRT_table1 <- HRT_table %>%
+  mutate_at(vars(starts_with("Ever used hormone")), ~replace(., . %in% c("No", "Prefer not to answer", "Do not know"), NA))
+
+long_HRT <- HRT_table1 %>%
+  pivot_longer(
+    cols = starts_with("Ever used hormone"),
+    names_to = c(".value", "Instance"),
+    names_pattern = "(.*) \\| Instance ([0-9]+)")
+
+long_HRT$score <- ifelse(
+  grepl("Yes", long_HRT$'Ever used hormone-replacement therapy (HRT)'), 2,
+  ifelse(grepl("NA", long_HRT$'Ever used hormone-replacement therapy (HRT)'), 1, NA)
+)
+
+HRT_scores <- long_HRT %>%
+  group_by(`Participant ID`) %>%
+  summarise(score = max(score, na.rm = TRUE))
+
+HRT_use_table <- HRT_scores %>%
+  mutate(score = case_when(
+    score == 2 ~ "Yes",
+    is.infinite(score) ~ NA_character_,
+    TRUE ~ as.character(score)
+  )) %>%
+  rename("Ever used hormone-replacement therapy (HRT)" = score)
+
+Lifestyle_tableZ <- left_join(Lifestyle_tableY, HRT_use_table, by = "Participant ID")
+
+Lifestyle_tableZ  <- Lifestyle_tableZ  %>%
+  select(-"Ever used hormone-replacement therapy (HRT) | Instance 0",
+         -"Ever used hormone-replacement therapy (HRT) | Instance 1",
+         -"Ever used hormone-replacement therapy (HRT) | Instance 2",
+         -"Ever used hormone-replacement therapy (HRT) | Instance 3")
 
 #Ever used supplements
+Supplement_table <- Lifestyle_tableZ %>%
+  select("Participant ID", starts_with("Vitamin supplement"))
 
-write.csv(Lifestyle_tableY, file= 'Lifestyle_tableY.csv')
-#dx upload Lifestyle_tableY.csv
+long_supps <- Supplement_table %>%
+  pivot_longer(
+    cols = starts_with("Vitamin supplement"),
+    names_to = c(".value", "Instance"),
+    names_pattern = "(.*) \\| Instance ([0-9]+)")
+
+long_supps$score <- ifelse(
+  grepl("Yes", long_supps$'Vitamin supplement user'), 3,
+  ifelse(grepl("No", long_supps$'Vitamin supplement user'), 2,
+            ifelse(grepl("NA", long_supps$'Vitamin supplement user'), 1, NA)
+         )
+  )
+
+supps_scores <- long_supps %>%
+  group_by(`Participant ID`) %>%
+  summarise(score = max(score, na.rm = TRUE))
+
+supps_table <- supps_scores %>%
+  mutate(score = case_when(
+    score == 3 ~ "Yes",
+    score == 2 ~ "No",
+    is.infinite(score) ~ NA_character_,
+    TRUE ~ as.character(score)
+  )) %>%
+  rename("Vitamin supplement user" = score)
+
+Lifestyle_table_red <- left_join(Lifestyle_tableZ, supps_table, by = "Participant ID")
+
+Lifestyle_table_red  <- Lifestyle_table_red  %>%
+  select(-"Vitamin supplement user | Instance 0",
+         -"Vitamin supplement user | Instance 1",
+         -"Vitamin supplement user | Instance 2",
+         -"Vitamin supplement user | Instance 3",
+         -"Vitamin supplement user | Instance 4")
+
+write.csv(Lifestyle_table_red, file= 'Lifestyle_table_red.csv')
+#dx upload Lifestyle_table_red.csv
 
