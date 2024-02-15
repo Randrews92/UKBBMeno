@@ -913,6 +913,139 @@ Lifestyle_table_red  <- Lifestyle_table_red  %>%
          -"Vitamin supplement user | Instance 3",
          -"Vitamin supplement user | Instance 4")
 
-write.csv(Lifestyle_table_red, file= 'Lifestyle_table_red.csv')
-#dx upload Lifestyle_table_red.csv
+#More removals:
+keyword <- "Treatment"
+matching_columns <- grep(keyword, names(Lifestyle_table_red), value = TRUE)
+print(matching_columns)
+
+Lifestyle_table_red  <- Lifestyle_table_red  %>%
+  select(-"Time since last menstrual period | Instance 0",
+         -"Time since last menstrual period | Instance 1",
+         -"Time since last menstrual period | Instance 2",
+         -"Time since last menstrual period | Instance 3",
+         -"Age at first live birth | Instance 1",
+         -"Age at first live birth | Instance 2",
+         -"Age at first live birth | Instance 3",
+         -"Vascular/heart problems diagnosed by doctor | Instance 1",
+         -"Vascular/heart problems diagnosed by doctor | Instance 2",
+         -"Diabetes diagnosed by doctor | Instance 1",
+         -"Diabetes diagnosed by doctor | Instance 2",
+         -"Diabetes diagnosed by doctor | Instance 3",
+         -"Medication for cholesterol, blood pressure, diabetes, or take exogenous hormones | Instance 0",
+         -"Medication for cholesterol, blood pressure, diabetes, or take exogenous hormones | Instance 1",
+         -"Medication for cholesterol, blood pressure, diabetes, or take exogenous hormones | Instance 2",
+         -"Medication for cholesterol, blood pressure, diabetes, or take exogenous hormones | Instance 3",
+         -"Medication for cholesterol, blood pressure or diabetes | Instance 1",
+         -"Medication for cholesterol, blood pressure or diabetes | Instance 2",
+         -"Medication for cholesterol, blood pressure or diabetes | Instance 3",
+         -"Treatment/medication code | Instance 1.x",
+         -"Treatment/medication code | Instance 2.x",
+         -"Treatment/medication code | Instance 3.x",
+         -"Treatment/medication code | Instance 1.y",
+         -"Treatment/medication code | Instance 2.y",
+         -"Treatment/medication code | Instance 3.y",
+         -"Cancer diagnosed by doctor | Instance 1",
+         -"Cancer diagnosed by doctor | Instance 2",
+         -"Cancer diagnosed by doctor | Instance 3",
+         -"Cancer code, self-reported | Instance 1",
+         -"Cancer code, self-reported | Instance 2",
+         -"Cancer code, self-reported | Instance 3",
+         -"Vitamin and mineral supplements | Instance 1",
+         -"Vitamin and mineral supplements | Instance 2",
+         -"Vitamin and mineral supplements | Instance 3",
+         -"Vitamin and/or mineral supplement use | Instance 1",
+         -"Vitamin and/or mineral supplement use | Instance 2",
+         -"Vitamin and/or mineral supplement use | Instance 3",
+         -"Vitamin and/or mineral supplement use | Instance 4")
+         
+Lifestyle_table_red  <- Lifestyle_table_red  %>%
+  select(-"Cancer year/age first occurred | Instance 0 | Array 0",
+         -"Cancer year/age first occurred | Instance 0 | Array 1",
+         -"Cancer year/age first occurred | Instance 0 | Array 2",
+         -"Cancer year/age first occurred | Instance 0 | Array 3",
+         -"Cancer year/age first occurred | Instance 0 | Array 4",
+         -"Cancer year/age first occurred | Instance 0 | Array 5",
+         -"Cancer year/age first occurred | Instance 1 | Array 0",
+         -"Cancer year/age first occurred | Instance 1 | Array 1",
+         -"Cancer year/age first occurred | Instance 1 | Array 2",
+         -"Cancer year/age first occurred | Instance 1 | Array 3",
+         -"Cancer year/age first occurred | Instance 1 | Array 4",
+         -"Cancer year/age first occurred | Instance 1 | Array 5",
+         -"Cancer year/age first occurred | Instance 2 | Array 0",
+         -"Cancer year/age first occurred | Instance 2 | Array 1",
+         -"Cancer year/age first occurred | Instance 2 | Array 2",
+         -"Cancer year/age first occurred | Instance 2 | Array 3",
+         -"Cancer year/age first occurred | Instance 2 | Array 4",
+         -"Cancer year/age first occurred | Instance 2 | Array 5",
+         -"Cancer year/age first occurred | Instance 3 | Array 0",
+         -"Cancer year/age first occurred | Instance 3 | Array 1",
+         -"Cancer year/age first occurred | Instance 3 | Array 2",
+         -"Cancer year/age first occurred | Instance 3 | Array 3",
+         -"Cancer year/age first occurred | Instance 3 | Array 4",
+         -"Cancer year/age first occurred | Instance 3 | Array 5")
+
+#Merging Age at last live births:
+keyword <- "Number of live births"
+matching_columns <- grep(keyword, names(Lifestyle_tableJ), value = TRUE)
+print(matching_columns)
+
+columns_to_convert <- c("Number of live births | Instance 0", 
+                        "Number of live births | Instance 1", 
+                        "Number of live births | Instance 2",
+                        "Number of live births | Instance 3")
+
+# Use lapply to apply factor() to selected columns
+Lifestyle_tableJ[columns_to_convert] <- lapply(Lifestyle_tableJ[columns_to_convert], factor)
+
+# Then we will find the levels in these columns:
+
+# Get levels of each factor column
+levels(Lifestyle_tableJ$`Number of live births | Instance 0`)
+levels(Lifestyle_tableJ$`Number of live births | Instance 1`)
+levels(Lifestyle_tableJ$`Number of live births | Instance 2`)
+levels(Lifestyle_tableJ$`Number of live births | Instance 3`)
+
+# All have the same values
+
+# Create a data frame with all instances in long format:
+# First subset ID and birth data
+subset_data <- Lifestyle_table_red %>%
+  select(`Participant ID`,
+         `Age at last live birth | Instance 0`,
+         `Age at last live birth | Instance 1`,
+         `Age at last live birth | Instance 2`,
+         `Age at last live birth | Instance 3`)
+
+subset_data_cleaned <- subset_data %>%
+  mutate_at(vars(starts_with("Age at last live birth")), ~replace(., . %in% c("Do not know", "Prefer not to answer", "Do not remember"), NA))
+
+long_births <- subset_data_cleaned %>%
+  mutate_at(vars(starts_with("Age at last live birth")), as.numeric) %>%
+  pivot_longer(
+    cols = starts_with("Age at last live birth"),
+    names_to = c(".value", "Instance"),
+    names_pattern = "(.*) \\| Instance ([0-9]+)"
+  )
+
+last_birth_age <- long_births %>%
+  group_by(`Participant ID`) %>%
+  summarise(`Age at last live birth` = max(`Age at last live birth`, na.rm = TRUE))
+
+Lifestyle_table_new <- setDT(Lifestyle_table_red)[setDT(last_birth_age), `Age at last live birth` := `Age at last live birth`, on = .(`Participant ID`)]
+
+Lifestyle_table_new <- Lifestyle_table_new %>%
+  mutate(`Age at last live birth` = replace(`Age at last live birth`, is.infinite(`Age at last live birth`), NA))
+
+Lifestyle_table_new  <- Lifestyle_table_new  %>%
+  select(-`Age at last live birth | Instance 0`,
+         -`Age at last live birth | Instance 1`,
+         -`Age at last live birth | Instance 2`,
+         -`Age at last live birth | Instance 3`)
+
+#Joining on assessment centre dates and ages:        
+# dx download Assessment_centre_info_participant.csv
+Lifestyle_table_new = left_join(Lifestyle_table_new, Assessment_centre_info_participant, by = "Participant ID")
+
+write.csv(Lifestyle_table_new, file= 'Lifestyle_table_new.csv')
+#dx upload Lifestyle_table_new.csv
 
