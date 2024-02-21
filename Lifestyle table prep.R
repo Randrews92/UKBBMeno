@@ -1042,10 +1042,26 @@ Lifestyle_table_new  <- Lifestyle_table_new  %>%
          -`Age at last live birth | Instance 2`,
          -`Age at last live birth | Instance 3`)
 
+Lifestyle_table_new  <- Lifestyle_table_new  %>%
+  select(-'...1',
+         -'...2',
+         -'...3')
+
 #Joining on assessment centre dates and ages:        
 # dx download Assessment_centre_info_participant.csv
 Lifestyle_table_new = left_join(Lifestyle_table_new, Assessment_centre_info_participant, by = "Participant ID")
 
-write.csv(Lifestyle_table_new, file= 'Lifestyle_table_new.csv')
-#dx upload Lifestyle_table_new.csv
+#Separating out medications
+library(tidyr)
+
+Lifestyle_table_sep <- Lifestyle_table_new %>%
+  separate_rows(`Treatment/medication code | Instance 0.y`, sep = "\\|")
+
+unique(Lifestyle_table_sep$`Treatment/medication code | Instance 0.y`)
+
+Lifestyle_table_sep2 <- Lifestyle_table_sep %>%
+  separate_rows(`Treatment/medication code | Instance 0.x`, sep = "\\|")
+
+write.csv(Lifestyle_table_sep2, file= 'Lifestyle_table_sep2.csv')
+#dx upload Lifestyle_table_sep2.csv
 
