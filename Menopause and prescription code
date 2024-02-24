@@ -1,0 +1,55 @@
+#Menopause and prescription data
+subset_data <- Lifestyle_table %>%
+  select(`Participant ID`,
+         `Qualifications | Instance 0`,
+         `Qualifications | Instance 1`,
+         `Qualifications | Instance 2`,
+         `Qualifications | Instance 3`)
+
+subset_data <- T %>%
+  select(`Participant.ID`,
+         `menopauseAge`,
+         `Year.of.birth`,
+         `Had.menopause`)
+
+filter_subset <- subset_data%>% filter(grepl("Yes", Had.menopause))
+
+# Calculate year of menopause
+filter_subset$MenopauseYear <- filter_subset$Year.of.birth + filter_subset$menopauseAge
+
+# View the updated data frame
+print(filter_subset)
+
+
+
+# Check the number of rows in Filtered_subset
+n_rows <- nrow(filter_subset)
+
+# Check the length of Year.of.Birth and menopauseAge vectors
+length_Year_of_Birth <- length(filter_subset$Year.of.birth)
+length_menopauseAge <- length(filter_subset$menopauseAge)
+
+# Check for missing values
+missing_values <- sum(is.na(filter_subset$Year.of.birth) | is.na(filter_subset$menopauseAge))
+
+# Print the results
+print(n_rows)
+print(length_Year_of_Birth)
+print(length_menopauseAge)
+print(missing_values)
+
+# Remove rows with missing values
+filter_subset <- filter_subset[complete.cases(filter_subset$Year.of.birth, filter_subset$menopauseAge), ]
+
+# Recalculate the number of rows and missing values
+n_rows <- nrow(filter_subset)
+missing_values <- sum(is.na(filter_subset$Year.of.birth) | is.na(filter_subset$menopauseAge))
+
+# Calculate MenopauseYear
+filter_subset$MenopauseYear <- filter_subset$Year.of.birth + filter_subset$menopauseAge
+
+# Print the updated results
+print(n_rows)
+print(missing_values)
+
+
