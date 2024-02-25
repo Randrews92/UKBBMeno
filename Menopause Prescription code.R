@@ -206,4 +206,7 @@ ggplot(data, aes(x = Category, y = Percentage, fill = Category)) +
   theme_minimal() +
   theme(legend.position = "bottom")  # Position legend at the bottom
 
-  ggsave("LOE_Death.png", LOE_Death, width = 6, height = 4, dpi = 300)
+#Overview of data: Men - 94.64% not, 5.36% yes
+#                  Menopausal women - 91.79% not, 8.21% yes
+#                  Non-menopausal women - 92.12% not, 7.88% yes
+#                  Had hysterectomy - 86.15% not, 13.85% yes 
