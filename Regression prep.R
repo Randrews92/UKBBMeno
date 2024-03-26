@@ -1,7 +1,7 @@
 
 library(dplyr)
 
-#Get outcomes from key_outcomes_with_death and baseline from lifestyle_table_red (hoping these are right)
+#Get outcomes from key_outcomes_with_death and baseline from lifestyle_table_new
 
 outcomes <- read.csv('Key_outcomes_table_withdeath.csv')
 
@@ -11,7 +11,7 @@ baseline <- read.csv('Lifestyle_table_new.csv')
 # If data is entered in both just use the bilat oopherectomy data if it's smaller than meno age data:
 #Amend this code below to include correct variable/ table names
 
-df$mergedAge <- ifelse(!is.na(df$bilateralOopherectomyAge) & df$bilateralOopherectomyAge < df$menopauseAge, df$bilateralOopherectomyAge, df$menopauseAge)
+baseline$mergedAge <- ifelse(!is.na(baseline$bilateral_oophorectomyAge) & baseline$bilateral_oophorectomyAge < baseline$menopauseAge, baseline$bilateral_oophorectomyAge, baseline$menopauseAge)
 
 # Create a cohort who experienced menopause around the same time they were at instance 0 using the new merged meno age column
 # Aim for within 5 years each way in women who did not have bilat ooph & from 0 years to 5 years in women who had bilat ooph.
@@ -26,9 +26,13 @@ meno2 <- baseline%>%filter(between(yrsfromBilat, 0, 5))
 
 # This type of code will create a binary Y/N column for women who had a bilateral oopherectomy using the bilateral_oophorectomy_age column
 
-df$eventOccurred <- ifelse(!is.na(df$a), "Y", "N")
+baseline$Oophorectomy_Occurred <- ifelse(!is.na(baseline$bilateral_oophorectomyAge), "Y", "N")
 
 # This code can be used for HRT, oral contraceptives and dementia once it's added. 
+#HRT
+baseline$HRT_Used <- ifelse(!is.na(baseline$Ever.used.hormone.replacement.therapy..HRT.), "Y", "N")
+#contraceptives
+baseline$Contraceptive_Used <- ifelse(!is.na(baseline$Ever.taken.oral.contraceptive.pill), "Y", "N")
 
 # Identify all columns where someone reported vitamin/ mineral supplement use.
 # Amend vitamin.supplement.user column so Yes for used supplements or No based on data from other vit/min columns. 

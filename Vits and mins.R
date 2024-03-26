@@ -1,6 +1,10 @@
 
-#   git config --global user.email "DouglasEA@cardiff.ac.uk"
-#   git config --global user.name "Eve"
+# git config --global user.email "DouglasEA@cardiff.ac.uk"
+# git config --global user.name "Eve"
+# copying from main: git checkout Eve
+# git checkout main -- "Regression prep.R"
+# git add "Regression prep.R"
+# git commit -m "Copy 'Regression prep.R' from main branch to Eve branch"
 # You should have been able to clone the Git repository: https://github.com/Randrews92/UKBBMeno.git and you should now be able to see the GIT button above.
 
 # First go into Terminal and type: dx download Vitamins_and_supplements_participant.csv
