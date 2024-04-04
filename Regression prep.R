@@ -62,6 +62,24 @@ meno1$Vitamin_or_Supplement_User <- ifelse(meno1$Vitamin.and.mineral.supplements
 
 # Next step is to identify dementia/ alzhiemers columns from outcomes (first occurrence dates should be fine)
 # Then we can join those columns onto meno cohort on ID
+keyword <- "G30"
+matching_columns <- grep(keyword, names(outcomes), value = TRUE)
+print(matching_columns)
+
+dementia_columns <- c("Date.F00.first.reported..dementia.in.alzheimer.s.disease.", 
+                        "Date.F02.first.reported..dementia.in.other.diseases.classified.elsewhere.", 
+                        "Date.F03.first.reported..unspecified.dementia.",
+                        "Date.F05.first.reported..delirium..not.induced.by.alcohol.and.other.psychoactive.substances.",
+                        "Date.G30.first.reported..alzheimer.s.disease.")
+
+dementia_columns <- outcomes %>%
+  select('Participant.ID',
+         'Date.F00.first.reported..dementia.in.alzheimer.s.disease.', 
+          'Date.F02.first.reported..dementia.in.other.diseases.classified.elsewhere.', 
+          'Date.F03.first.reported..unspecified.dementia.',
+          'Date.F05.first.reported..delirium..not.induced.by.alcohol.and.other.psychoactive.substances.',
+          'Date.G30.first.reported..alzheimer.s.disease.')
+meno_dementia = left_join(meno1, dementia_columns, by = "Participant.ID")
 
 # Future steps: we'll look at matching men and women, and look at controlling for APO-E. 
 
