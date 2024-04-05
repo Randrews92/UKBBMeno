@@ -81,6 +81,19 @@ dementia_columns <- outcomes %>%
           'Date.G30.first.reported..alzheimer.s.disease.')
 meno_dementia = left_join(meno1, dementia_columns, by = "Participant.ID")
 
+
+# combine the earliest date from all dementia columns into one column:
+
+# create a time distance variable from date of Instance 0 to first occurance of dementia in combined date column
+
+# create a binary variable for dementia Y/N by seeing if there are any values in combined demntia date column
+
+# Quality control 
+# Check all date ranges and age ranges (if they're bizarre we'll exclude)
+# Look up other similar ukbb studies and explore their methods for exclusions/ quality control
+
+# Future steps: Cox proprotional hazard regression
+
 # Future steps: we'll look at matching men and women, and look at controlling for APO-E. 
 
 
