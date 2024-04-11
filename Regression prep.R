@@ -81,13 +81,25 @@ dementia_columns <- outcomes %>%
           'Date.G30.first.reported..alzheimer.s.disease.')
 meno_dementia = left_join(meno1, dementia_columns, by = "Participant.ID")
 
-
+meno_dementia  <- meno_dementia  %>%
+  select(-"...1",
+         -"...2",
+         -"Date.F05.first.reported..delirium..not.induced.by.alcohol.and.other.psychoactive.substances.")
+         
 # combine the earliest date from all dementia columns into one column:
+meno_dementia$dementia_diagnosis <- NA
 
+meno_dementia$dementia_diagnosis <- pmin(as.Date(meno_dementia$Date.F00.first.reported..dementia.in.alzheimer.s.disease., origin = "1970-01-01"),
+                              as.Date(meno_dementia$Date.F02.first.reported..dementia.in.other.diseases.classified.elsewhere., origin = "1970-01-01"),
+                              as.Date(meno_dementia$Date.F03.first.reported..unspecified.dementia., origin = "1970-01-01"),
+                              as.Date(meno_dementia$Date.G30.first.reported..alzheimer.s.disease., origin = "1970-01-01"),
+                              na.rm = TRUE)
 # create a time distance variable from date of Instance 0 to first occurance of dementia in combined date column
+meno_dementia$dementia_time_distance <- meno_dementia$dementia_diagnosis - meno_dementia$Date.of.attending.assessment.centre...Instance.0
 
 # create a binary variable for dementia Y/N by seeing if there are any values in combined demntia date column
-
+meno_dementia$Had_Dementia <- "N"
+meno_dementia$Had_Dementia <- ifelse(!is.na(meno_dementia$dementia_diagnosis), "Y", "N")
 # Quality control 
 # Check all date ranges and age ranges (if they're bizarre we'll exclude)
 # Look up other similar ukbb studies and explore their methods for exclusions/ quality control
@@ -95,5 +107,4 @@ meno_dementia = left_join(meno1, dementia_columns, by = "Participant.ID")
 # Future steps: Cox proprotional hazard regression
 
 # Future steps: we'll look at matching men and women, and look at controlling for APO-E. 
-
 
