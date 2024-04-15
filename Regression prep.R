@@ -20,24 +20,18 @@ baseline$yrsfromMeno <- baseline$menopauseAge-baseline$Age.at.recruitment
 
 baseline$yrsfromBilat <- baseline$bilateral_oophorectomyAge-baseline$Age.at.recruitment
 
-meno1 <- baseline%>%filter(between(yrsfromMeno, -5, 5))
-
-meno2 <- meno1%>%filter(between(yrsfromBilat, 0, 5)) ## leaves only 273 observations - women who have said yes to bilooph and to menopause
-
-meno2 <- baseline%>%filter(between(yrsfromBilat, 0, 5)) ## leaves 972 observations - all women who have had bilooph within five years
+meno1 <- baseline %>%
+  filter((between(yrsfromMeno, -5, 5)) | (between(yrsfromBilat, 0, 5)))
 
 # This type of code will create a binary Y/N column for women who had a bilateral oopherectomy using the bilateral_oophorectomy_age column
 
-meno2$Oophorectomy_Occurred <- ifelse(!is.na(meno2$bilateral_oophorectomyAge), "Y", "N")
 meno1$Oophorectomy_Occurred <- ifelse(!is.na(meno1$bilateral_oophorectomyAge), "Y", "N")
 
 # This code can be used for HRT, oral contraceptives and dementia once it's added. 
 #HRT
-meno2$HRT_Used <- ifelse(!is.na(meno2$Ever.used.hormone.replacement.therapy..HRT.), "Y", "N")
 meno1$HRT_Used <- ifelse(!is.na(meno1$Ever.used.hormone.replacement.therapy..HRT.), "Y", "N")
 
 #contraceptives
-meno2$Contraceptive_Used <- ifelse(!is.na(meno2$Ever.taken.oral.contraceptive.pill), "Y", "N")
 meno1$Contraceptive_Used <- ifelse(!is.na(meno1$Ever.taken.oral.contraceptive.pill), "Y", "N")
 
 # Identify all columns where someone reported vitamin/ mineral supplement use.
@@ -48,10 +42,6 @@ baseline$recoded_vits1 <- ifelse(baseline$Vitamin.and.mineral.supplements...Inst
                             ifelse(baseline$Vitamin.and.mineral.supplements...Instance.0 == "Prefer not to say", "Unknown", "Y"))
 # Do similar to the above for any other vitamin/ mineral columns 
 # Create a new column which checks if there's a Y in any of the vit/ min columns, if not it will input "Unknown" or "None of the above" from recoded_vits1
-# Amended the code below using the tables/ column names you've used, you can also add additional columns if you've recoded more than one. 
-
-baseline$recoded_vits3 <- ifelse(baseline$recoded_vits1== "Y" | baseline$recoded_vits2 == "Y", "Y", baseline$recoded_vits1)
-
 # My suggested vit code
 meno1$Vitamin_or_Supplement_User <- "N"
 meno1$Vitamin_or_Supplement_User <- ifelse(meno1$Vitamin.and.mineral.supplements...Instance.0 %in% c(NA, "Prefer not to answer", "None of the above") & 
@@ -95,7 +85,12 @@ meno_dementia$dementia_diagnosis <- pmin(as.Date(meno_dementia$Date.F00.first.re
                               as.Date(meno_dementia$Date.G30.first.reported..alzheimer.s.disease., origin = "1970-01-01"),
                               na.rm = TRUE)
 # create a time distance variable from date of Instance 0 to first occurance of dementia in combined date column
-meno_dementia$dementia_time_distance <- meno_dementia$dementia_diagnosis - meno_dementia$Date.of.attending.assessment.centre...Instance.0
+meno_dementia$dementia_diagnosis <- as.Date(meno_dementia$dementia_diagnosis, origin = "1970-01-01")
+meno_dementia$Date.of.attending.assessment.centre...Instance.0 <- as.Date(meno_dementia$Date.of.attending.assessment.centre...Instance.0, origin = "1970-01-01")
+
+meno_dementia$dementia_time_distance <- ifelse(is.na(meno_dementia$dementia_diagnosis) | is.na(meno_dementia$Date.of.attending.assessment.centre...Instance.0), 
+                                               NA, 
+                                               meno_dementia$dementia_diagnosis - meno_dementia$Date.of.attending.assessment.centre...Instance.0)
 
 # create a binary variable for dementia Y/N by seeing if there are any values in combined demntia date column
 meno_dementia$Had_Dementia <- "N"
