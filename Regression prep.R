@@ -107,8 +107,6 @@ meno_dementia_new$LOE = meno_dementia_new$mergedAge - meno_dementia_new$menarche
 
 Death_table_participant$Death_date = Death_table_participant$`Date of death | Instance 0`
 Death_table_participant$Participant.ID = Death_table_participant$`Participant ID`
-meno_dementia_new = left_join(Death_table_participant, Death_date, by = "Participant.ID")
-
 meno_death <- merge(meno_dementia_new, Death_table_participant[, c("Participant.ID", "Death_date")], by = "Participant.ID", all.x = TRUE)
 
 meno_death$dementia_diagnosis2 <- ifelse(is.na(meno_death$dementia_diagnosis), 
