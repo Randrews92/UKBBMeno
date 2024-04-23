@@ -101,5 +101,22 @@ meno_dementia$Had_Dementia <- ifelse(!is.na(meno_dementia$dementia_diagnosis), "
 
 # Future steps: Cox proprotional hazard regression
 
-# Future steps: we'll look at matching men and women, and look at controlling for APO-E. 
+# Future steps: we'll look at matching men and women, and look at controlling for APO-E.
 
+meno_dementia_new$LOE = meno_dementia_new$mergedAge - meno_dementia_new$menarcheAge
+
+Death_table_participant$Death_date = Death_table_participant$`Date of death | Instance 0`
+Death_table_participant$Participant.ID = Death_table_participant$`Participant ID`
+meno_dementia_new = left_join(Death_table_participant, Death_date, by = "Participant.ID")
+
+meno_death <- merge(meno_dementia_new, Death_table_participant[, c("Participant.ID", "Death_date")], by = "Participant.ID", all.x = TRUE)
+
+meno_death$dementia_diagnosis2 <- ifelse(is.na(meno_death$dementia_diagnosis), 
+                                 ifelse(!is.na(meno_death$Death_date), meno_death$Death_date, '2022-10-22'),
+                                 meno_death$dementia_diagnosis)
+
+meno_death$dementia_diagnosis2 <- ifelse(is.na(meno_death$dementia_diagnosis) & !is.na(meno_death$Death_date),
+                           meno_death$Death_date,
+                           ifelse(is.na(meno_death$dementia_diagnosis),
+                           as.Date('2022-10-22'),
+                           meno_death$dementia_diagnosis))
