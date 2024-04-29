@@ -163,23 +163,33 @@ men_only_regression <- men_only_regression %>%
     )
   )
 
-
 ####### Next steps #######
 
 ## Time distances
-
 # For both the male and female tables we need a new time_distance column 
 # we need times distance from date of Instance 0 to date in dementia_diagnosis2 column
+meno_dementia$dementia_diagnosis2 <- as.Date(meno_dementia$dementia_diagnosis, origin = "1970-01-01")
+meno_dementia$Date.of.attending.assessment.centre...Instance.0 <- as.Date(meno_dementia$Date.of.attending.assessment.centre...Instance.0, origin = "1970-01-01")
+
+meno_death$dementia_time_distance2 <- ifelse(is.na(meno_death$dementia_diagnosis2) | is.na(meno_death$Date.of.attending.assessment.centre...Instance.0), 
+                                               NA, 
+                                               meno_death$dementia_diagnosis2 - meno_death$Date.of.attending.assessment.centre...Instance.0)
+
+men_only_regression$dementia_diagnosis2 <- as.Date(men_only_regression$dementia_diagnosis2, origin = "1970-01-01")
+men_only_regression$Date.of.attending.assessment.centre...Instance.0 <- as.Date(men_only_regression$Date.of.attending.assessment.centre...Instance.0, origin = "1970-01-01")
+
+men_only_regression$dementia_time_distance2 <- ifelse(is.na(men_only_regression$dementia_diagnosis2) | is.na(men_only_regression$Date.of.attending.assessment.centre...Instance.0), 
+                                             NA, 
+                                             men_only_regression$dementia_diagnosis2 - men_only_regression$Date.of.attending.assessment.centre...Instance.0)
 
 ## Psych Covariates: 
+psychiatric_variables_participant <- psychiatric_variables_participant %>%
+  rename(Participant.ID = `Participant ID`)
+meno_death = left_join(meno_death, psychiatric_variables_participant, by = "Participant.ID")
 
-# We need to add the following to male and female datasets: 
-# Frequency of tiredness/ lethargy (instance 0)
-# Illness injury bereavement last 2 years (instance 0)
-# Neuroticism score 
+men_only_regression = left_join(men_only_regression, psychiatric_variables_participant, by = "Participant.ID")
 
 ## Merging & Saving sets
-
 # We need to merge the male and female datasets to create a 'both' cohort.
 # We then need to save all 3 of the individual data tables of the men/women/both cohorts into the UKBB project
 
