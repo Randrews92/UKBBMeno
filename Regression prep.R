@@ -4,6 +4,11 @@ library(gtsummary)
 library(broom.mixed)
 library(dplyr)
 
+meno_death  <- meno_death  %>%
+  select(-"...1",
+         -"...2",
+         -"...4",
+         -"X")
 #Get outcomes from key_outcomes_with_death and baseline from lifestyle_table_new
 
 outcomes <- read.csv('Key_outcomes_table_withdeath.csv')
@@ -101,7 +106,8 @@ meno_dementia$Had_Dementia <- ifelse(!is.na(meno_dementia$dementia_diagnosis), "
 # Quality control 
 # Check all date ranges and age ranges (if they're bizarre we'll exclude)
 # Look up other similar ukbb studies and explore their methods for exclusions/ quality control
-
+meno_death_filtered <- meno_death %>%
+  filter(Participant.ID != 4001063)
 # Future steps: Cox proprotional hazard regression
 
 # Future steps: we'll look at matching men and women, and look at controlling for APO-E.
@@ -137,31 +143,6 @@ meno_death <- meno_death %>%
     )
   )
 
-
-# Next steps- apply the date code above to the men-only 
-
-men_only_regression <- read.csv('men_only_regression.csv')
-
-men_only_regression$Death_date <- as.Date(men_only_regression$Death_date)
-class(men_only_regression$Death_date)
-
-men_only_regression$dementia_diagnosis <- as.Date(men_only_regression$dementia_diagnosis)
-class(men_only_regression$dementia_diagnosis)
-
-men_only_regression <- men_only_regression %>%
-  mutate(
-    Death_date = as.Date(Death_date),
-    dementia_diagnosis = as.Date(dementia_diagnosis),
-    dementia_diagnosis2 = if_else(
-      is.na(dementia_diagnosis) & !is.na(Death_date),
-      Death_date,
-      if_else(
-        is.na(dementia_diagnosis),
-        as.Date('2022-12-08'),
-        dementia_diagnosis
-      )
-    )
-  )
 
 ####### Next steps #######
 

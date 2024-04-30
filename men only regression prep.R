@@ -9,6 +9,10 @@ keyword <- "contraceptive"
 matching_columns <- grep(keyword, names(baseline), value = TRUE)
 print(matching_columns)
 
+men_only_regression  <- men_only_regression  %>%
+  select(-"...1",
+         -"X")
+
 men_only_regression  <- baseline  %>%
   select(-"...1",
          -"...2",
@@ -61,3 +65,34 @@ death_table <- read.csv('Death_table_participant.csv')
 Death_table_participant$Death_date = Death_table_participant$`Date of death | Instance 0`
 Death_table_participant$Participant.ID = Death_table_participant$`Participant ID`
 men_only_regression <- merge(men_only_regression, Death_table_participant[, c("Participant.ID", "Death_date")], by = "Participant.ID", all.x = TRUE)
+
+
+#Altering date layout on dementia diagnosis. 
+
+men_only_regression$Death_date <- as.Date(men_only_regression$Death_date)
+class(men_only_regression$Death_date)
+
+men_only_regression$dementia_diagnosis <- as.Date(men_only_regression$dementia_diagnosis)
+class(men_only_regression$dementia_diagnosis)
+
+men_only_regression <- men_only_regression %>%
+  mutate(
+    Death_date = as.Date(Death_date),
+    dementia_diagnosis = as.Date(dementia_diagnosis),
+    dementia_diagnosis2 = if_else(
+      is.na(dementia_diagnosis) & !is.na(Death_date),
+      Death_date,
+      if_else(
+        is.na(dementia_diagnosis),
+        as.Date('2022-12-08'),
+        dementia_diagnosis
+      )
+    )
+  )
+
+#Quality Control - removing outliers
+men_only_filtered <- men_only_regression %>%
+  filter(Participant.ID != 1671399)
+men_only_filtered <- men_only_filtered %>%
+  filter(Participant.ID != 3630528)
+#potential: 3925392, 3130794
