@@ -5,7 +5,7 @@ library(data.table)
 library(dplyr)
 library(stringr)
 library(foreign)
-#install.packages("kableExtra")
+install.packages("kableExtra")
 library(kableExtra)
 
 ## Swiss Army Knife to extract filtered SNPs:
@@ -32,7 +32,7 @@ library(kableExtra)
 
 # NOTE: file names in Bulk are project specific, so for example "ukb22828_c19_b0_v3.bgen" will differ from other projects/ UKBB applications
 
-## The next steps can be completed in R studio
+## The next steps can be completed in R studio using Jennifer Collister's R Markdown script: 
 
 # In terminal run: 
 # dx download apoe.gen
@@ -110,7 +110,7 @@ genotypes <- data.frame(APOE_genotype = factor(c("e4e4", "e3e4",
                                    "CC", "TC", "TT", 
                                    "TC", "TT"))
 
-genotypes <- dplyr::inner_join(gen_apoe, genotypes, by=c("rs7412", "rs429358")) %>%
+genotypes <- dplyr::inner_join(apoe, genotypes, by=c("rs7412", "rs429358")) %>%
   mutate(e4 = str_count(APOE_genotype, "4"))
 
 gen_count <- genotypes %>% 
