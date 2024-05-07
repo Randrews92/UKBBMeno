@@ -10,8 +10,6 @@ library(data.table)
 # read in csvs 
 
 apoe <- read.csv("gen_apoe.csv")
-meno <- read.csv("meno_death_filtered.csv")
-men <- read.csv("men_only_filtered.csv")
 
 # Work out APOE status using ifelse statement 
 
@@ -29,11 +27,17 @@ apoe%>%
   summarise(count=n_distinct(ID))
 
 # Join APOE status by ID
-men_apoe <- merge(men, apoe[, c("ID", "APOE4")], by.x = "Participant.ID", by.y = "ID", all.x = TRUE)
+men_apoe <- merge(men_only_filtered, apoe[, c("ID", "APOE4")], by.x = "Participant.ID", by.y = "ID", all.x = TRUE)
 
 # Follow the processes above for joining APOE4 onto the meno table. 
+women_apoe <- merge(meno_death_filtered, apoe[, c("ID", "APOE4")], by.x = "Participant.ID", by.y = "ID", all.x = TRUE)
 
 # May be worth excluding NAs. 
+men_apoe <- men_apoe %>%
+  filter(!is.na(APOE4))
+women_apoe <- women_apoe %>%
+  filter(!is.na(APOE4))
+
 
 # We also need to exclude withdrawn particpants- I'll send you over the current list via email. 
 

@@ -108,6 +108,11 @@ meno_dementia$Had_Dementia <- ifelse(!is.na(meno_dementia$dementia_diagnosis), "
 # Look up other similar ukbb studies and explore their methods for exclusions/ quality control
 meno_death_filtered <- meno_death %>%
   filter(Participant.ID != 4001063)
+
+ids_to_remove <- c(2062700, 2542951, 3144677, 3325607, 3486895, 3828146, 4098093, 4284920, 4482316, 5079250, 5397385, 5441538)
+meno_death_filtered <- meno_death_filtered %>%
+  filter(!Participant.ID %in% ids_to_remove)
+
 # Future steps: Cox proprotional hazard regression
 
 # Future steps: we'll look at matching men and women, and look at controlling for APO-E.
@@ -169,6 +174,8 @@ psychiatric_variables_participant <- psychiatric_variables_participant %>%
 meno_death = left_join(meno_death, psychiatric_variables_participant, by = "Participant.ID")
 
 men_only_regression = left_join(men_only_regression, psychiatric_variables_participant, by = "Participant.ID")
+
+
 
 ## Merging & Saving sets
 # We need to merge the male and female datasets to create a 'both' cohort.

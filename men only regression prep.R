@@ -96,3 +96,7 @@ men_only_filtered <- men_only_regression %>%
 men_only_filtered <- men_only_filtered %>%
   filter(Participant.ID != 3630528)
 #potential: 3925392, 3130794
+
+ids_to_remove <- c(2062700, 2542951, 3144677, 3325607, 3486895, 3828146, 4098093, 4284920, 4482316, 5079250, 5397385, 5441538)
+men_only_filtered <- men_only_filtered %>%
+  filter(!Participant.ID %in% ids_to_remove)
