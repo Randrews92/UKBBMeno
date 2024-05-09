@@ -188,7 +188,7 @@ men_only_regression = left_join(men_only_regression, psychiatric_variables_parti
 # These are the variables we will need in the regression formula:
 
 # Outcomes: Dementia Y/N, distance
-# Reproductive: Age at last live birth, Total number of children, LOE, contraceptive pill, HRT, oopherectomy, mergedAge
+# Reproductive: Age at last live birth, Total number of children**, LOE, contraceptive pill, HRT, oopherectomy, mergedAge
 # Lifestyle: Exercise, Alcohol, Smoking, Supplement use, BMI, sleep duration, Diet, frequency of tirdness/lethargy
 # Covariates: Deprivation, Ethnicity, Age at recruitment, Qualifications
 # Medical Covariates: number of meds taken, heart problems, diabetes, cholesterol, cancer, osteoarthritus, rhuematoid arthritus
@@ -197,12 +197,24 @@ men_only_regression = left_join(men_only_regression, psychiatric_variables_parti
 # Some of these variables may need some additional prepping/ sanitation 
 
 # Regression formula (will need to add variables accordingly)
+install.packages("survival")
+library(survival)
 
-cox_model <- coxph(Surv(distance, Had_Dementia) ~ ageAtbirth + LOE + ..., data = meno_death)
+women_apoe$Had_Dementia <- as.numeric(women_apoe$Had_Dementia == 'Y')
+cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ Age.at.last.live.birth + LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + mergedAge, data = women_apoe)
 
 # GtSummary tables 
 
 tbl_regression(cox_model, exponentiate=TRUE)
+
+library(gtsummary)
+
+# Create a summary table of the Cox model
+summary_table <- tbl_regression(cox_model, exponentiate = TRUE)
+
+# Print the summary table
+summary_table
+
 
 # Example of how regression table can be improved to be publication ready (will need variables amended accoridngly)
 
