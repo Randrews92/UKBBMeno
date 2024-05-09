@@ -188,8 +188,8 @@ men_only_regression = left_join(men_only_regression, psychiatric_variables_parti
 # These are the variables we will need in the regression formula:
 
 # Outcomes: Dementia Y/N, distance
-# Reproductive: Age at last live birth, Total number of children**, LOE, contraceptive pill, HRT, oopherectomy, mergedAge
-# Lifestyle: Exercise, Alcohol, Smoking, Supplement use, BMI, sleep duration, Diet, frequency of tirdness/lethargy
+# Reproductive: Age at last live birth, LOE, contraceptive pill, HRT, oopherectomy, mergedAge
+# Lifestyle: Exercise, Alcohol, Smoking, Supplement use, BMI, sleep duration, Diet, frequency of tirdness/lethargy**
 # Covariates: Deprivation, Ethnicity, Age at recruitment, Qualifications
 # Medical Covariates: number of meds taken, heart problems, diabetes, cholesterol, cancer, osteoarthritus, rhuematoid arthritus
 # Psych covariates: trauma (illness injury bereavement), neuroticism score
@@ -201,20 +201,16 @@ install.packages("survival")
 library(survival)
 
 women_apoe$Had_Dementia <- as.numeric(women_apoe$Had_Dementia == 'Y')
+cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ Age.at.last.live.birth + LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + mergedAge + Summed.MET.minutes.per.week.for.all.activity...Instance.0 + AlcoholBaseline + SmokingBaseline + Vitamin_or_Supplement_User + Body.mass.index..BMI....Instance.0 + Sleep.duration...Instance.0 + DietScore, data = women_apoe)
+
+#Reproductive
 cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ Age.at.last.live.birth + LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + mergedAge, data = women_apoe)
 
-# GtSummary tables 
 
+# GtSummary tables 
 tbl_regression(cox_model, exponentiate=TRUE)
 
-library(gtsummary)
-
-# Create a summary table of the Cox model
-summary_table <- tbl_regression(cox_model, exponentiate = TRUE)
-
-# Print the summary table
-summary_table
-
+summary(cox_model)
 
 # Example of how regression table can be improved to be publication ready (will need variables amended accoridngly)
 
