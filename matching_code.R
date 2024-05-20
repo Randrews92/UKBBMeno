@@ -25,4 +25,4 @@ for (i in 1:nrow(women_apoe)) {
   }
 }
 
-print(matched_pairs)
+
