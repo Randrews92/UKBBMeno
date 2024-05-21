@@ -198,6 +198,7 @@ men_only_regression = left_join(men_only_regression, psychiatric_variables_parti
 install.packages("survival")
 library(survival)
 
+#Altering columns
 women_apoe$Had_Dementia <- as.numeric(women_apoe$Had_Dementia == 'Y' | women_apoe$Had_Dementia == 'y')
 library(dplyr)
 women_apoe <- women_apoe %>%
@@ -207,7 +208,44 @@ women_apoe <- women_apoe %>%
 women_apoe <- women_apoe %>%
   rename(Neuroticism.score = "Neuroticism score | Instance 0")
 
+women_apoe <- women_apoe %>%
+  mutate(Ethnic.background...Instance.0 = as.factor(Ethnic.background...Instance.0))
+women_apoe <- women_apoe %>%
+  mutate(Sleep.duration...Instance.0 = as.numeric(Sleep.duration...Instance.0))
+women_apoe <- women_apoe %>%
+  mutate(Sleeplessness...insomnia...Instance.0 = as.factor(Sleeplessness...insomnia...Instance.0))
+women_apoe <- women_apoe %>%
+  mutate(Vascular.heart.problems.diagnosed.by.doctor...Instance.0 = as.factor(Vascular.heart.problems.diagnosed.by.doctor...Instance.0))
+women_apoe <- women_apoe %>%
+  mutate(Diabetes.diagnosed.by.doctor...Instance.0 = as.factor(Diabetes.diagnosed.by.doctor...Instance.0))
+women_apoe <- women_apoe %>%
+  mutate(Ever.had.osteoarthritis.affecting.one.or.more.joints..e.g..hip..knee..shoulder. = as.factor(Ever.had.osteoarthritis.affecting.one.or.more.joints..e.g..hip..knee..shoulder.))
+women_apoe <- women_apoe %>%
+  mutate(Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints = as.factor(Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints))
+women_apoe <- women_apoe %>%
+  mutate(Cancer.diagnosed.by.doctor...Instance.0 = as.factor(Cancer.diagnosed.by.doctor...Instance.0))
+women_apoe <- women_apoe %>%
+  mutate(Cancer.code..self.reported...Instance.0 = as.factor(Cancer.code..self.reported...Instance.0))
+women_apoe <- women_apoe %>%
+  mutate(SmokingBaseline = as.factor(SmokingBaseline))
+women_apoe <- women_apoe %>%
+  mutate(AlcoholBaseline = as.factor(AlcoholBaseline))
+women_apoe <- women_apoe %>%
+  mutate(Vitamin_or_Supplement_User = as.factor(Vitamin_or_Supplement_User))
+women_apoe <- women_apoe %>%
+  mutate(Oophorectomy_Occurred = as.factor(Oophorectomy_Occurred))
+women_apoe <- women_apoe %>%
+  mutate(HRT_Used = as.factor(HRT_Used))
+women_apoe <- women_apoe %>%
+  mutate(Contraceptive_Used = as.factor(Contraceptive_Used))
+women_apoe <- women_apoe %>%
+  mutate(Frequency.of.tiredness.lethargy.in.last.2.weeks = as.factor(Frequency.of.tiredness.lethargy.in.last.2.weeks))
+women_apoe <- women_apoe %>%
+  mutate(Neuroticism.score = as.factor(Neuroticism.score))
+women_apoe <- women_apoe %>%
+  mutate(Illness.injury.bereavement.stress.in.last.2.years = as.factor(Illness.injury.bereavement.stress.in.last.2.years))
 
+#cox
 cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ Age.at.last.live.birth + LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + mergedAge + Summed.MET.minutes.per.week.for.all.activity...Instance.0 + AlcoholBaseline + SmokingBaseline + Vitamin_or_Supplement_User + Body.mass.index..BMI....Instance.0 + Sleep.duration...Instance.0 + DietScore + Frequency.of.tiredness.lethargy.in.last.2.weeks + Townsend.deprivation.index.at.recruitment + Ethnic.background...Instance.0 + Age.at.recruitment + QualScore + Number.of.treatments.medications.taken...Instance.0 + Vascular.heart.problems.diagnosed.by.doctor...Instance.0 + Diabetes.diagnosed.by.doctor...Instance.0 + Cancer.diagnosed.by.doctor...Instance.0 + Ever.had.osteoarthritis.affecting.one.or.more.joints..e.g..hip..knee..shoulder. + Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints + Illness.injury.bereavement.stress.in.last.2.years + Neuroticism.score, data = women_apoe)
 
 
