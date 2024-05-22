@@ -211,7 +211,7 @@ women_apoe <- women_apoe %>%
 women_apoe <- women_apoe %>%
   mutate(Ethnic.background...Instance.0 = as.factor(Ethnic.background...Instance.0))
 women_apoe <- women_apoe %>%
-  mutate(Sleep.duration...Instance.0 = as.numeric(Sleep.duration...Instance.0))
+  mutate(Sleep.duration...Instance.0 = as.factor(Sleep.duration...Instance.0))
 women_apoe <- women_apoe %>%
   mutate(Sleeplessness...insomnia...Instance.0 = as.factor(Sleeplessness...insomnia...Instance.0))
 women_apoe <- women_apoe %>%
