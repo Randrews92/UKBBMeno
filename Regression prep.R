@@ -197,10 +197,9 @@ men_only_regression = left_join(men_only_regression, psychiatric_variables_parti
 # Regression formula (will need to add variables accordingly)
 install.packages("survival")
 library(survival)
-
+library(dplyr)
 #Altering columns
 women_apoe$Had_Dementia <- as.numeric(women_apoe$Had_Dementia == 'Y' | women_apoe$Had_Dementia == 'y')
-library(dplyr)
 women_apoe <- women_apoe %>%
   rename(Frequency.of.tiredness.lethargy.in.last.2.weeks = "Frequency of tiredness / lethargy in last 2 weeks | Instance 0")
 women_apoe <- women_apoe %>%
@@ -253,6 +252,30 @@ cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ Age.at.last.liv
 tbl_regression(cox_model, exponentiate=TRUE)
 
 summary(cox_model)
+
+#Data cleaning
+head(women_apoe)
+
+summary(women_apoe)
+
+glimpse(women_apoe)
+
+colSums(is.na(women_apoe))
+
+missing_ids <- women_apoe %>%
+  filter(is.na(SmokingBaseline) | is.na(AlcoholBaseline) | is.na(Frequency.of.tiredness.lethargy.in.last.2.weeks)) %>%
+  select(Participant.ID, SmokingBaseline, AlcoholBaseline, Frequency.of.tiredness.lethargy.in.last.2.weeks)
+
+ids_to_remove <- c(1585054, 2587429, 5305788)
+women_apoe <- women_apoe %>%
+  filter(!Participant.ID %in% ids_to_remove)
+
+missing_ids <- women_apoe %>%
+  filter(is.na(SmokingBaseline) | is.na(AlcoholBaseline) | is.na(Frequency.of.tiredness.lethargy.in.last.2.weeks)) %>%
+  select(Participant.ID, SmokingBaseline, AlcoholBaseline, Frequency.of.tiredness.lethargy.in.last.2.weeks)
+
+women_apoe <- women_apoe %>%
+  mutate(`Cancer.code..self.reported...Instance.0` = ifelse(is.na(`Cancer.code..self.reported...Instance.0`), 'No', `Cancer.code..self.reported...Instance.0`))
 
 # Example of how regression table can be improved to be publication ready (will need variables amended accoridngly)
 
