@@ -17,7 +17,11 @@ baseline <- read.csv('Lifestyle_table_new.csv')
 # If data is entered in both just use the bilat oopherectomy data if it's smaller than meno age data:
 #Amend this code below to include correct variable/ table names
 
-baseline$mergedAge <- ifelse(!is.na(baseline$bilateral_oophorectomyAge) & baseline$bilateral_oophorectomyAge < baseline$menopauseAge, baseline$bilateral_oophorectomyAge, baseline$menopauseAge)
+baseline$mergedAge <- ifelse(
+  !is.na(baseline$bilateral_oophorectomyAge) & !is.na(baseline$menopauseAge),
+  pmin(baseline$bilateral_oophorectomyAge, baseline$menopauseAge, na.rm = TRUE),
+  ifelse(!is.na(baseline$bilateral_oophorectomyAge), baseline$bilateral_oophorectomyAge, baseline$menopauseAge)
+)
 
 # Create a cohort who experienced menopause around the same time they were at instance 0 using the new merged meno age column
 # Aim for within 5 years each way in women who did not have bilat ooph & from 0 years to 5 years in women who had bilat ooph.
@@ -104,7 +108,7 @@ meno_dementia$Had_Dementia <- ifelse(!is.na(meno_dementia$dementia_diagnosis), "
 # Quality control 
 # Check all date ranges and age ranges (if they're bizarre we'll exclude)
 # Look up other similar ukbb studies and explore their methods for exclusions/ quality control
-meno_death_filtered <- meno_death %>%
+meno_death_filtered <- meno_dementia %>% 
   filter(Participant.ID != 4001063)
 
 ids_to_remove <- c(2062700, 2542951, 3144677, 3325607, 3486895, 3828146, 4098093, 4284920, 4482316, 5079250, 5397385, 5441538)
@@ -118,7 +122,7 @@ meno_death_filtered <- meno_death_filtered %>%
 meno_dementia_new <- read.csv('meno_dementia_new.csv')
 Death_table_participant <- read.csv('Death_table_participant.csv')
 
-
+#creating Lifetime oestrogen exposure column.
 meno_dementia_new$LOE = meno_dementia_new$mergedAge - meno_dementia_new$menarcheAge
 
 Death_table_participant$Death_date = Death_table_participant$Date.of.death...Instance.0
@@ -244,14 +248,38 @@ women_apoe <- women_apoe %>%
 women_apoe <- women_apoe %>%
   mutate(Illness.injury.bereavement.stress.in.last.2.years = as.factor(Illness.injury.bereavement.stress.in.last.2.years))
 
-#cox
-cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ Age.at.last.live.birth + LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + mergedAge + Summed.MET.minutes.per.week.for.all.activity...Instance.0 + AlcoholBaseline + SmokingBaseline + Vitamin_or_Supplement_User + Body.mass.index..BMI....Instance.0 + Sleep.duration...Instance.0 + DietScore + Frequency.of.tiredness.lethargy.in.last.2.weeks + Townsend.deprivation.index.at.recruitment + Ethnic.background...Instance.0 + Age.at.recruitment + QualScore + Number.of.treatments.medications.taken...Instance.0 + Vascular.heart.problems.diagnosed.by.doctor...Instance.0 + Diabetes.diagnosed.by.doctor...Instance.0 + Cancer.diagnosed.by.doctor...Instance.0 + Ever.had.osteoarthritis.affecting.one.or.more.joints..e.g..hip..knee..shoulder. + Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints + Illness.injury.bereavement.stress.in.last.2.years + Neuroticism.score, data = women_apoe)
+#Remove negative values from dementia time distance2 column
+negative_dementia_time_distance_ids <- women_apoe %>%
+  filter(dementia_time_distance2 < 0) %>%
+  select(Participant.ID)
+print(negative_dementia_time_distance_ids)
 
+ids_to_remove <- c (1440685, 1588172, 1863127, 1982460, 2224142, 2263519, 4362678, 4501875, 4810643, 4994228, 5470676)
+women_apoe <- women_apoe %>%
+  filter(!Participant.ID %in% ids_to_remove)
 
-# GtSummary tables 
-tbl_regression(cox_model, exponentiate=TRUE)
+#missing value overview: 
+missing_ids <- women_apoe %>%
+  filter(is.na(SmokingBaseline) | is.na(AlcoholBaseline) | is.na(Frequency.of.tiredness.lethargy.in.last.2.weeks)) %>%
+  select(Participant.ID, SmokingBaseline, AlcoholBaseline, Frequency.of.tiredness.lethargy.in.last.2.weeks)
 
-summary(cox_model)
+ids_to_remove <- c(1585054, 2587429, 5305788)
+women_apoe <- women_apoe %>%
+  filter(!Participant.ID %in% ids_to_remove)
+
+missing_ids <- women_apoe %>%
+  filter(is.na(Had.menopause)) %>%
+  select(Participant.ID, Had.menopause)
+women_apoe <- women_apoe %>% 
+  filter(Participant.ID != 1185904)
+
+women_apoe <- women_apoe %>%
+  mutate(`Cancer.code..self.reported...Instance.0` = ifelse(is.na(`Cancer.code..self.reported...Instance.0`), 'No', `Cancer.code..self.reported...Instance.0`))
+
+#Feature plot of variable distributions
+install.packages("caret")
+library(caret)
+featurePlot(women_apoe %>% select(APOE4, HRT_Used), women_apoe %>% select(Had_Dementia), plot='density')
 
 #Data cleaning
 head(women_apoe)
@@ -262,20 +290,20 @@ glimpse(women_apoe)
 
 colSums(is.na(women_apoe))
 
-missing_ids <- women_apoe %>%
-  filter(is.na(SmokingBaseline) | is.na(AlcoholBaseline) | is.na(Frequency.of.tiredness.lethargy.in.last.2.weeks)) %>%
-  select(Participant.ID, SmokingBaseline, AlcoholBaseline, Frequency.of.tiredness.lethargy.in.last.2.weeks)
+#overview of missing values: Townsend - 0.12% missing, MET activity - 19.43%, Age at first live birth - 33.95%, BMI - 0.3%, No. of meds taken - 0.01%, Meds for cholesterol - 100%, 
+#Ever had Rheumatoid arthritis - 55.09%, Ever had osteoarthritis  55.09%, QualScore - 0.70%, No. of live births - 0.06%, bilat_oophAge - 95.91%
+#Age at last live birth - 33.99%, LOE - 2.75%, Neuroticism - 18.70%, Illnesss, injury etc - 0.17%
 
-ids_to_remove <- c(1585054, 2587429, 5305788)
-women_apoe <- women_apoe %>%
-  filter(!Participant.ID %in% ids_to_remove)
+#cox
+cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ Age.at.last.live.birth + LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + mergedAge + Summed.MET.minutes.per.week.for.all.activity...Instance.0 + AlcoholBaseline + SmokingBaseline + Vitamin_or_Supplement_User + Body.mass.index..BMI....Instance.0 + Sleep.duration...Instance.0 + DietScore + Frequency.of.tiredness.lethargy.in.last.2.weeks + Townsend.deprivation.index.at.recruitment + Ethnic.background...Instance.0 + Age.at.recruitment + QualScore + Number.of.treatments.medications.taken...Instance.0 + Vascular.heart.problems.diagnosed.by.doctor...Instance.0 + Diabetes.diagnosed.by.doctor...Instance.0 + Cancer.diagnosed.by.doctor...Instance.0 + Ever.had.osteoarthritis.affecting.one.or.more.joints..e.g..hip..knee..shoulder. + Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints + Illness.injury.bereavement.stress.in.last.2.years + Neuroticism.score, data = women_apoe)
 
-missing_ids <- women_apoe %>%
-  filter(is.na(SmokingBaseline) | is.na(AlcoholBaseline) | is.na(Frequency.of.tiredness.lethargy.in.last.2.weeks)) %>%
-  select(Participant.ID, SmokingBaseline, AlcoholBaseline, Frequency.of.tiredness.lethargy.in.last.2.weeks)
+# GtSummary tables 
+tbl_regression(cox_model, exponentiate=TRUE)
 
-women_apoe <- women_apoe %>%
-  mutate(`Cancer.code..self.reported...Instance.0` = ifelse(is.na(`Cancer.code..self.reported...Instance.0`), 'No', `Cancer.code..self.reported...Instance.0`))
+summary(cox_model)
+
+#next session
+women_apoe <- read.csv('women_apoe_new.csv')
 
 # Example of how regression table can be improved to be publication ready (will need variables amended accoridngly)
 
