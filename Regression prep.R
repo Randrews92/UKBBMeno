@@ -305,6 +305,29 @@ summary(cox_model)
 #next session
 women_apoe <- read.csv('women_apoe_new.csv')
 
+#count the amunt of Y/N or 1/0. e.g. 
+install.packages("dplyr")
+library(dplyr)
+#Binary
+A <- women_apoe %>%
+  group_by(APOE4) %>%
+  summarise(COUNT = n_distinct(Participant.ID))
+B <- women_apoe %>%
+  group_by(Had.menopause) %>%
+  summarise(COUNT = n_distinct(Participant.ID))
+C <- women_apoe %>%
+  group_by(Oophorectomy_Occurred) %>%
+  summarise(COUNT = n_distinct(Participant.ID))
+#Summary of counts in binary variables:
+#Summary of counts in binary variables:
+#APOE4 = Yes = 13,646, No = 34,275
+#Had.menopause = Yes = 47,595, Hysterectomy = 309, other reason = 17
+#Had.Dementia = Yes = 138, No = 47783
+#Vitamin_or_Supplement_User = Yes = 18,368, No = 29,553
+#Contraceptive_Used = Yes = 42,159, No = 42,159
+#HRT_Used = Yes = 13,533, No = 34,388
+#Oophorectomy_occurred = Yes = 1961, No = 45,960
+
 # Example of how regression table can be improved to be publication ready (will need variables amended accoridngly)
 
 fm3 %>%
