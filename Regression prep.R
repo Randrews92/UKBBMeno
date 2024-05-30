@@ -328,6 +328,20 @@ C <- women_apoe %>%
 #HRT_Used = Yes = 13,533, No = 34,388
 #Oophorectomy_occurred = Yes = 1961, No = 45,960
 
+#Medians:
+median_menarche_age <- median(women_apoe$menarcheAge, na.rm = TRUE)
+print(median_menarche_age)
+#Median menarche age = 13
+#Impute data:
+# Load the dplyr package
+library(dplyr)
+
+# Impute missing values in the menarcheAge column with the median age of 13
+women_apoe <- women_apoe %>%
+  mutate(menarcheAge = ifelse(is.na(menarcheAge), 13, menarcheAge))
+print(women_apoe)
+
+
 # Example of how regression table can be improved to be publication ready (will need variables amended accoridngly)
 
 fm3 %>%
