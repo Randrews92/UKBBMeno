@@ -281,6 +281,15 @@ install.packages("caret")
 library(caret)
 featurePlot(women_apoe %>% select(APOE4, HRT_Used), women_apoe %>% select(Had_Dementia), plot='density')
 
+if ("cli" %in% search()) detach("package:carat", unload = TRUE)
+
+install.packages('pacman')
+library(pacman)
+pacman::p_load(carat)
+install.packages("cli")
+library(cli)
+install.packages("pillar")
+library(pillar)
 #Data cleaning
 head(women_apoe)
 
@@ -303,7 +312,7 @@ tbl_regression(cox_model, exponentiate=TRUE)
 summary(cox_model)
 
 #next session
-women_apoe <- read.csv('women_apoe_new.csv')
+women_apoe <- read.csv('women_apoe_imputed.csv')
 
 #count the amunt of Y/N or 1/0. e.g. 
 install.packages("dplyr")
