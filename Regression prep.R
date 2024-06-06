@@ -350,6 +350,26 @@ print(women_apoe)
 #fix LOE column with imputed menarcheAge values:
 women_apoe$LOE = women_apoe$mergedAge - women_apoe$menarcheAge
 
+#attempting facet wrap
+install.packages("ggplot2")
+library(ggplot2)
+install.packages("tidyverse")
+library(tidyverse)
+install.packages("cli")
+
+df_long <- women_apoe %>%
+  pivot_longer(
+    cols = everything(),
+    names_to = "variable",
+    values_to = "value"
+  )
+ggplot(df_long, aes(x = value)) +
+  geom_histogram(binwidth = 1, fill = "blue", color = "black") +
+  facet_wrap(~ variable, scales = "free") +
+  theme_minimal() +
+  labs(title = "Histogram of Variables", x = "Value", y = "Count")
+
+
 # Example of how regression table can be improved to be publication ready (will need variables amended accoridngly)
 
 fm3 %>%
