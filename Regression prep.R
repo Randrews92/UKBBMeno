@@ -369,7 +369,24 @@ ggplot(df_long, aes(x = value)) +
   theme_minimal() +
   labs(title = "Histogram of Variables", x = "Value", y = "Count")
 
+##
+installed.packages("tidyverse")
+library(tidyverse)
+install.packages("factoextra")
+library(factoextra)    # library to vizualize clusters
+options(repr.plot.width=20, repr.plot.height=15)
 
+women_table %>% gather(attributes, value, 1:ncol(women_table)) %>%
+  ggplot(aes(x = value)) +
+  geom_histogram(fill="lightblue",colour="black") +
+  facet_wrap(~attributes, scales = "free")
+
+##
+women_table <- women_apoe %>%
+  select(QualScore, SmokingBaseline, AlcoholBaseline, DietScore, menopauseAge, menarcheAge, Number.of.live.births, bilateral_oophorectomyAge, mergedAge, yrsfromMeno, yrsfromBilat, Oophorectomy_Occurred, HRT_Used, Contraceptive_Used, Vitamin_or_Supplement_User, Had_Dementia, LOE, APOE4)
+
+women_table <- women_table %>%
+  mutate(HRT_Used = as.factor(HRT_Used))
 # Example of how regression table can be improved to be publication ready (will need variables amended accoridngly)
 
 fm3 %>%
