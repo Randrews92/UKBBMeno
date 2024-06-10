@@ -350,40 +350,41 @@ print(women_apoe)
 #fix LOE column with imputed menarcheAge values:
 women_apoe$LOE = women_apoe$mergedAge - women_apoe$menarcheAge
 
-#attempting facet wrap
-install.packages("ggplot2")
-library(ggplot2)
+#Histogram
 install.packages("tidyverse")
 library(tidyverse)
-install.packages("cli")
-
-df_long <- women_apoe %>%
-  pivot_longer(
-    cols = everything(),
-    names_to = "variable",
-    values_to = "value"
-  )
-ggplot(df_long, aes(x = value)) +
-  geom_histogram(binwidth = 1, fill = "blue", color = "black") +
-  facet_wrap(~ variable, scales = "free") +
-  theme_minimal() +
-  labs(title = "Histogram of Variables", x = "Value", y = "Count")
-
-##
-installed.packages("tidyverse")
-library(tidyverse)
+install.packages("ggplot2")
+library(ggplot2)
 install.packages("factoextra")
-library(factoextra)    # library to vizualize clusters
+library(factoextra)
 options(repr.plot.width=20, repr.plot.height=15)
+library(dplyr)
+library(tidyr)
 
-women_table %>% gather(attributes, value, 1:ncol(women_table)) %>%
+women_table2 %>% gather(attributes, value, 1:ncol(women_table2)) %>%
   ggplot(aes(x = value)) +
   geom_histogram(fill="lightblue",colour="black") +
   facet_wrap(~attributes, scales = "free")
 
+women_table2 <- women_table2 %>%
+  mutate(HRT_Used = ifelse(HRT_Used == "Y", 1, ifelse(HRT_Used == "N", 0, NA)))
+women_table2 <- women_table2 %>%
+  mutate(Vitamin_or_Supplement_User = ifelse(Vitamin_or_Supplement_User == "Y", 1, ifelse(Vitamin_or_Supplement_User == "N", 0, NA)))
+women_table2 <- women_table2 %>%
+  mutate(APOE4 = ifelse(APOE4 == "Y", 1, ifelse(APOE4 == "N", 0, NA)))
+women_table2 <- women_table2 %>%
+  mutate(Oophorectomy_Occurred = ifelse(Oophorectomy_Occurred == "Y", 1, ifelse(Oophorectomy_Occurred == "N", 0, NA)))
+
+
 ##
 women_table <- women_apoe %>%
   select(QualScore, SmokingBaseline, AlcoholBaseline, DietScore, menopauseAge, menarcheAge, Number.of.live.births, bilateral_oophorectomyAge, mergedAge, yrsfromMeno, yrsfromBilat, Oophorectomy_Occurred, HRT_Used, Contraceptive_Used, Vitamin_or_Supplement_User, Had_Dementia, LOE, APOE4)
+
+women_table2 <- women_apoe %>%
+  select(Participant.ID, DietScore, menarcheAge, mergedAge, Oophorectomy_Occurred, HRT_Used, Contraceptive_Used, Vitamin_or_Supplement_User, Had_Dementia, LOE, APOE4)
+
+women_table3 <- women_table2 %>%
+  select(Participant.ID, DietScore, menarcheAge, mergedAge, Had_Dementia, LOE)
 
 women_table <- women_table %>%
   mutate(HRT_Used = as.factor(HRT_Used))
