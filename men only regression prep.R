@@ -100,3 +100,24 @@ men_only_filtered <- men_only_filtered %>%
 ids_to_remove <- c(2062700, 2542951, 3144677, 3325607, 3486895, 3828146, 4098093, 4284920, 4482316, 5079250, 5397385, 5441538)
 men_only_filtered <- men_only_filtered %>%
   filter(!Participant.ID %in% ids_to_remove)
+## Diet score
+men <- read.csv('men_apoe.csv')
+all <- read.csv('Lifestyle_table_new.csv')
+
+library(dplyr)
+men <- men %>%
+  mutate(DietScore_binary = ifelse(DietScore >= 5, 1, 0))
+
+library(dplyr)
+all <- all %>%
+  mutate(DietScore_binary = ifelse(DietScore >= 5, 1, 0))
+
+A <- men %>%
+  group_by(DietScore_binary) %>%
+  summarise(COUNT = n_distinct(Participant.ID))
+B <- all %>%
+  group_by(DietScore_binary) %>%
+  summarise(COUNT = n_distinct(Participant.ID))
+
+#men = 26.7% unhealthy (59,540), 73.3% healthy (163,480)
+#all= 20.7% unhealthy (104,177), 79.3% healthy (398,192)
