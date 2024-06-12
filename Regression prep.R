@@ -327,6 +327,9 @@ B <- women_apoe %>%
 C <- women_apoe %>%
   group_by(Oophorectomy_Occurred) %>%
   summarise(COUNT = n_distinct(Participant.ID))
+C <- women_apoe %>%
+  group_by(DietScore_binary) %>%
+  summarise(COUNT = n_distinct(Participant.ID))
 #Summary of counts in binary variables:
 #Summary of counts in binary variables:
 #APOE4 = Yes = 13,646, No = 34,275
@@ -375,6 +378,10 @@ women_table2 <- women_table2 %>%
 women_table2 <- women_table2 %>%
   mutate(Oophorectomy_Occurred = ifelse(Oophorectomy_Occurred == "Y", 1, ifelse(Oophorectomy_Occurred == "N", 0, NA)))
 
+#Fixing DietScore
+library(dplyr)
+women_apoe <- women_apoe %>%
+  mutate(DietScore_binary = ifelse(DietScore >= 5, 1, 0))
 
 ##
 women_table <- women_apoe %>%
@@ -383,11 +390,8 @@ women_table <- women_apoe %>%
 women_table2 <- women_apoe %>%
   select(Participant.ID, DietScore, menarcheAge, mergedAge, Oophorectomy_Occurred, HRT_Used, Contraceptive_Used, Vitamin_or_Supplement_User, Had_Dementia, LOE, APOE4)
 
-women_table3 <- women_table2 %>%
-  select(Participant.ID, DietScore, menarcheAge, mergedAge, Had_Dementia, LOE)
-
-women_table <- women_table %>%
-  mutate(HRT_Used = as.factor(HRT_Used))
+women_table2 <- women_apoe %>%
+  select(DietScore_binary)
 # Example of how regression table can be improved to be publication ready (will need variables amended accoridngly)
 
 fm3 %>%
