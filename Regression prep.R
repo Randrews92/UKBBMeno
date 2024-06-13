@@ -313,7 +313,8 @@ summary(cox_model)
 
 #next session
 women_apoe <- read.csv('women_apoe_imputed.csv')
-
+women_table <- read.csv('women_table.csv')
+men_table <- read.csv('men_table.csv')
 #count the amunt of Y/N or 1/0. e.g. 
 install.packages("dplyr")
 library(dplyr)
@@ -387,11 +388,38 @@ women_apoe <- women_apoe %>%
 women_table <- women_apoe %>%
   select(QualScore, SmokingBaseline, AlcoholBaseline, DietScore, menopauseAge, menarcheAge, Number.of.live.births, bilateral_oophorectomyAge, mergedAge, yrsfromMeno, yrsfromBilat, Oophorectomy_Occurred, HRT_Used, Contraceptive_Used, Vitamin_or_Supplement_User, Had_Dementia, LOE, APOE4)
 
-women_table2 <- women_apoe %>%
+women_table2 <- women_table %>%
   select(Participant.ID, DietScore, menarcheAge, mergedAge, Oophorectomy_Occurred, HRT_Used, Contraceptive_Used, Vitamin_or_Supplement_User, Had_Dementia, LOE, APOE4)
 
 women_table2 <- women_apoe %>%
   select(DietScore_binary)
+
+#Fixing Missing values
+#Arthritis
+library(dplyr)
+women_table <- women_table %>%
+  mutate(Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints = ifelse(is.na(Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints), "No", Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints))
+women_table <- women_table %>%
+  mutate(Ever.had.osteoarthritis.affecting.one.or.more.joints..e.g..hip..knee..shoulder. = ifelse(is.na(Ever.had.osteoarthritis.affecting.one.or.more.joints..e.g..hip..knee..shoulder.), "No", Ever.had.osteoarthritis.affecting.one.or.more.joints..e.g..hip..knee..shoulder.))
+#BMI
+median_BMI <- median(women_table$Body.mass.index..BMI....Instance.0, na.rm = TRUE)
+print(median_BMI)
+#Median BMI = 25.7706
+women_table <- women_table %>%
+  mutate(Body.mass.index..BMI....Instance.0 = ifelse(is.na(Body.mass.index..BMI....Instance.0), 25.7706, Body.mass.index..BMI....Instance.0))
+print(women_table)
+colSums(is.na(women_table))
+
+#MET
+#missing = 9312
+#Range:
+library(dplyr)
+met_range <- range(women_table$Summed.MET.minutes.per.week.for.all.activity...Instance.0, na.rm = TRUE)
+met_median <- median(women_table$Summed.MET.minutes.per.week.for.all.activity...Instance.0, na.rm = TRUE)
+met_range
+met_median
+#Range = from 0-19,278
+#Median = 1644
 # Example of how regression table can be improved to be publication ready (will need variables amended accoridngly)
 
 fm3 %>%
