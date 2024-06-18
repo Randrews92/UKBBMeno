@@ -297,7 +297,7 @@ summary(women_apoe)
 
 glimpse(women_apoe)
 
-colSums(is.na(women_table))
+colSums(is.na(completed_data))
 
 #overview of missing values: Townsend - 0.12% missing, MET activity - 19.43%, Age at first live birth - 33.95%, BMI - 0.3%, No. of meds taken - 0.01%, Meds for cholesterol - 100%, 
 #Ever had Rheumatoid arthritis - 55.09%, Ever had osteoarthritis  55.09%, QualScore - 0.70%, No. of live births - 0.06%, bilat_oophAge - 95.91%
@@ -318,7 +318,7 @@ summary(cox_model)
 cox_model <- glm(Had_Dementia ~ LOE + Body.mass.index..BMI....Instance.0 + Contraceptive_Used + HRT_Used, data = women_table, family = "binomial")
 
 #next session
-women_apoe <- read.csv('women_apoe_imputed.csv')
+women_apoe <- read.csv('women_apoe.csv')
 women_table <- read.csv('women_table.csv')
 men_table <- read.csv('men_table.csv')
 #count the amunt of Y/N or 1/0. e.g. 
@@ -356,6 +356,19 @@ library(dplyr)
 women_apoe <- women_apoe %>%
   mutate(menarcheAge = ifelse(is.na(menarcheAge), 13, menarcheAge))
 print(women_apoe)
+
+
+install.packages("mice")
+library(mice)
+
+imputed_data <- mice(women_apoe, m=1, method='pmm', maxit=5, seed=500, printFlag=FALSE)
+summary(imputed_data)
+
+completed_data <- complete(imputed_data, action = 1)
+
+sum(is.na(completed_data$age_at_menarche))  
+
+
 
 #fix LOE column with imputed menarcheAge values:
 women_apoe$LOE = women_apoe$mergedAge - women_apoe$menarcheAge
