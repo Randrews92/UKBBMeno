@@ -297,20 +297,20 @@ summary(women_apoe)
 
 glimpse(women_apoe)
 
-colSums(is.na(completed_data))
+colSums(is.na(women_table))
 
 #overview of missing values: Townsend - 0.12% missing, MET activity - 19.43%, Age at first live birth - 33.95%, BMI - 0.3%, No. of meds taken - 0.01%, Meds for cholesterol - 100%, 
 #Ever had Rheumatoid arthritis - 55.09%, Ever had osteoarthritis  55.09%, QualScore - 0.70%, No. of live births - 0.06%, bilat_oophAge - 95.91%
 #Age at last live birth - 33.99%, LOE - 2.75%, Neuroticism - 18.70%, Illnesss, injury etc - 0.17%
 
+install.packages("gtsummary")
+library(gtsummary)
 #cox
 cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ Age.at.last.live.birth + LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + mergedAge + Summed.MET.minutes.per.week.for.all.activity...Instance.0 + AlcoholBaseline + SmokingBaseline + Vitamin_or_Supplement_User + Body.mass.index..BMI....Instance.0 + Sleep.duration...Instance.0 + DietScore + Frequency.of.tiredness.lethargy.in.last.2.weeks + Townsend.deprivation.index.at.recruitment + Ethnic.background...Instance.0 + Age.at.recruitment + QualScore + Number.of.treatments.medications.taken...Instance.0 + Vascular.heart.problems.diagnosed.by.doctor...Instance.0 + Diabetes.diagnosed.by.doctor...Instance.0 + Cancer.diagnosed.by.doctor...Instance.0 + Ever.had.osteoarthritis.affecting.one.or.more.joints..e.g..hip..knee..shoulder. + Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints + Illness.injury.bereavement.stress.in.last.2.years + Neuroticism.score, data = women_apoe)
 cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ LOE + Body.mass.index..BMI....Instance.0, data = women_table)
-cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ LOE + Body.mass.index..BMI....Instance.0 + Contraceptive_Used + HRT_Used, data = women_table)
+cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + APOE4 + BMI + DietScore_binary + Vitamin_or_Supplement_User, data = women_table)
 
 # GtSummary tables
-install.packages("gtsummary")
-library(gtsummary)
 tbl_regression(cox_model, exponentiate=TRUE)
 
 summary(cox_model)
@@ -319,7 +319,7 @@ cox_model <- glm(Had_Dementia ~ LOE + Body.mass.index..BMI....Instance.0 + Contr
 
 #next session
 women_apoe <- read.csv('women_apoe.csv')
-women_table <- read.csv('women_table.csv')
+women_table <- read.csv('women_table_current.csv')
 men_table <- read.csv('men_table.csv')
 #count the amunt of Y/N or 1/0. e.g. 
 install.packages("dplyr")
@@ -423,6 +423,9 @@ women_table <- women_table %>%
 #BMI
 median_BMI <- median(women_table$Body.mass.index..BMI....Instance.0, na.rm = TRUE)
 print(median_BMI)
+women_table <- women_table %>%
+  rename(BMI = Body.mass.index..BMI....Instance.0)
+
 #Median BMI = 25.7706
 women_table <- women_table %>%
   mutate(Body.mass.index..BMI....Instance.0 = ifelse(is.na(Body.mass.index..BMI....Instance.0), 25.7706, Body.mass.index..BMI....Instance.0))
@@ -439,6 +442,15 @@ met_range
 met_median
 #Range = from 0-19,278
 #Median = 1644
+library(dplyr)
+women_table <- women_table %>%
+  mutate(MET_category = case_when(
+    Summed.MET.minutes.per.week.for.all.activity...Instance.0 < 800 ~ "low",
+    Summed.MET.minutes.per.week.for.all.activity...Instance.0 >= 800 & Summed.MET.minutes.per.week.for.all.activity...Instance.0 < 2400 ~ "moderate",
+    Summed.MET.minutes.per.week.for.all.activity...Instance.0 >= 2400 ~ "high"
+  ))
+
+
 # Example of how regression table can be improved to be publication ready (will need variables amended accoridngly)
 mean_year_of_birth <- mean(women_table$Year.of.birth, na.rm = TRUE)
 mean_year_of_birth
