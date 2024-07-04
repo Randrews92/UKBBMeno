@@ -467,16 +467,38 @@ sum(is.na(subset_data$Age.at.first.live.birth...Instance.0))
 sum(is.na(subset_data$Age.at.last.live.birth))
 sum(is.na(subset_data$Number.of.live.births))
 
+#Removing Age at first+last live birth for now due to missing data:
+library(dplyr)
+women_table  <- women_table  %>%
+  select(-'X.1',
+         -'X.2',
+         -'X.3',
+         -'X.4',
+         -'X',
+         -'Age.at.first.live.birth...Instance.0',
+         -'Age.at.last.live.birth')
 
-live_birthage <- first_live_birth_participant %>%
-  rowwise() %>%
-  mutate(Age.at.first.live.birth = max(
-    c(`Age at first live birth | Instance 0`, 
-      `Age at first live birth | Instance 1`, 
-      `Age at first live birth | Instance 2`, 
-      `Age at first live birth | Instance 3`), na.rm = TRUE
-  )) %>%
-  ungroup()
+#Other columns
+#Vascular
+response_counts <- table(women_table$Vascular.heart.problems.diagnosed.by.doctor...Instance.0)
+print(response_counts)
+
+women_table$Vascular_problem_binary <- ifelse(
+  women_table$Vascular.heart.problems.diagnosed.by.doctor...Instance.0 %in% c("None of the above", "Prefer not to answer"), 
+  "N", 
+  "Y"
+)
+#Diabetes
+response_counts <- table(women_table$Diabetes.diagnosed.by.doctor...Instance.0)
+print(response_counts)
+women_table$Diabetes_binary <- ifelse(
+  women_table$Diabetes.diagnosed.by.doctor...Instance.0 %in% c("No", "Do not know", "Prefer not to answer"), 
+  "N", 
+  "Y"
+)
+response_counts <- table(women_table$Diabetes_binary)
+
+
 # Example of how regression table can be improved to be publication ready (will need variables amended accoridngly)
 mean_year_of_birth <- mean(women_table$Year.of.birth, na.rm = TRUE)
 mean_year_of_birth
