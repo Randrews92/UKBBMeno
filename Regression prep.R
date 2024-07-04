@@ -4,9 +4,12 @@ library(gtsummary)
 library(broom.mixed)
 library(dplyr)
 
-women_apoe <- women_apoe  %>%
-  select(-"...1",
-         -"...3")
+women_table <- women_table  %>%
+  select(-"X.4",
+         -"X.3",
+         -"X.2",
+         -"X.1",
+         -"X")
 #Get outcomes from key_outcomes_with_death and baseline from lifestyle_table_new
 
 outcomes <- read.csv('Key_outcomes_table_withdeath.csv')
@@ -358,18 +361,6 @@ women_apoe <- women_apoe %>%
 print(women_apoe)
 
 
-install.packages("mice")
-library(mice)
-
-imputed_data <- mice(women_apoe, m=1, method='pmm', maxit=5, seed=500, printFlag=FALSE)
-summary(imputed_data)
-
-completed_data <- complete(imputed_data, action = 1)
-
-sum(is.na(completed_data$age_at_menarche))  
-
-
-
 #fix LOE column with imputed menarcheAge values:
 women_apoe$LOE = women_apoe$mergedAge - women_apoe$menarcheAge
 
@@ -442,6 +433,17 @@ met_range
 met_median
 #Range = from 0-19,278
 #Median = 1644
+
+install.packages("mice")
+library(mice)
+
+imputed_data <- mice(women_table$Summed.MET.minutes.per.week.for.all.activity...Instance.0, m=1, method='pmm', maxit=5, seed=500, printFlag=FALSE)
+summary(imputed_data)
+
+completed_data <- complete(imputed_data, action = 1)
+
+sum(is.na(completed_data$Summed.MET.minutes.per.week.for.all.activity...Instance.0)) 
+
 library(dplyr)
 women_table <- women_table %>%
   mutate(MET_category = case_when(
@@ -451,6 +453,30 @@ women_table <- women_table %>%
   ))
 
 
+
+subset_data <- women_table %>%
+  select(`Participant.ID`,
+         `Number.of.live.births`,
+         `Age.at.first.live.birth...Instance.0`,
+         `Age.at.last.live.birth`)
+
+num_zeros <- sum(subset_data$Number.of.live.births == 0, na.rm = TRUE)
+print(num_zeros)
+
+sum(is.na(subset_data$Age.at.first.live.birth...Instance.0))
+sum(is.na(subset_data$Age.at.last.live.birth))
+sum(is.na(subset_data$Number.of.live.births))
+
+
+live_birthage <- first_live_birth_participant %>%
+  rowwise() %>%
+  mutate(Age.at.first.live.birth = max(
+    c(`Age at first live birth | Instance 0`, 
+      `Age at first live birth | Instance 1`, 
+      `Age at first live birth | Instance 2`, 
+      `Age at first live birth | Instance 3`), na.rm = TRUE
+  )) %>%
+  ungroup()
 # Example of how regression table can be improved to be publication ready (will need variables amended accoridngly)
 mean_year_of_birth <- mean(women_table$Year.of.birth, na.rm = TRUE)
 mean_year_of_birth
