@@ -453,7 +453,6 @@ women_table <- women_table %>%
   ))
 
 
-
 subset_data <- women_table %>%
   select(`Participant.ID`,
          `Number.of.live.births`,
@@ -478,6 +477,9 @@ women_table  <- women_table  %>%
          -'Age.at.first.live.birth...Instance.0',
          -'Age.at.last.live.birth')
 
+women_table_depression <-women_table_depression %>%
+  select(-'Age.at.first.live.birth...Instance.0',
+         -'Age.at.last.live.birth')
 #Other columns
 #Vascular
 response_counts <- table(women_table$Vascular.heart.problems.diagnosed.by.doctor...Instance.0)
@@ -498,8 +500,115 @@ women_table$Diabetes_binary <- ifelse(
 )
 response_counts <- table(women_table$Diabetes_binary)
 
+#Depression columns
+Depression_columns  <- Depression_columns  %>%
+  select(-'...1')
+women_table_depression = left_join(women_table, Depression_columns, by = "Participant.ID")
 
-# Example of how regression table can be improved to be publication ready (will need variables amended accoridngly)
+depression_check <- women_table_depression %>%
+  select(`Participant.ID`,
+         `Year.of.birth`,
+         `Date.F32.first.reported..depressive.episode.`,
+         `Date.F33.first.reported..recurrent.depressive.disorder.`)
+
+#Regression table columns
+Regression_columns <- women_table_depression %>%
+  select(`Participant.ID`,
+         `Year.of.birth`,
+         `Townsend.deprivation.index.at.recruitment`,
+         `Ethnic.background...Instance.0`,
+         `Summed.MET.minutes.per.week.for.all.activity...Instance.0`,
+         `BMI`,
+         `Sleep.duration...Instance.0`,
+         `Sleeplessness...insomnia...Instance.0`,
+         `Number.of.treatments.medications.taken...Instance.0`,
+         `Vascular_problem_binary`,
+         `Diabetes_binary`,
+         `Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints`,
+         `Ever.had.osteoarthritis.affecting.one.or.more.joints..e.g..hip..knee..shoulder.`,
+         `Cancer.diagnosed.by.doctor...Instance.0`,
+         `Age.at.recruitment`,
+         `QualScore`,
+         `SmokingBaseline`,
+         `AlcoholBaseline`,
+         `DietScore`,
+         `Number.of.live.births`,
+         `mergedAge`,
+         `Oophorectomy_Occurred`,
+         `HRT_Used`,
+         `Contraceptive_Used`,
+         `Vitamin_or_Supplement_User`,
+         `LOE`,
+         `Frequency.of.tiredness.lethargy.in.last.2.weeks`,
+         `Illness.injury.bereavement.stress.in.last.2.years`,
+         `APOE4`,
+         `Has.Date`,
+         `Had_Dementia`)
+         
+colSums(is.na(Regression_columns))
+
+imputation_columns <- Regression_columns %>%
+  select(`Participant.ID`,
+         `Townsend.deprivation.index.at.recruitment`,
+         `Summed.MET.minutes.per.week.for.all.activity...Instance.0`,
+         `Number.of.treatments.medications.taken...Instance.0`,
+         `QualScore`,
+         `Number.of.live.births`)
+         
+Regression_columns$
+install.packages("mice")
+library(mice)
+
+imputed_data <- mice(imputation_columns, m=1, method='pmm', maxit=5, seed=500, printFlag=FALSE)
+summary(imputed_data)
+
+completed_data <- complete(imputed_data, action = 1)        
+colSums(is.na(completed_data))
+
+Regression_columns <- Regression_columns  %>%
+  select(-'Townsend.deprivation.index.at.recruitment',
+         -'Summed.MET.minutes.per.week.for.all.activity...Instance.0',
+         -'Number.of.treatments.medications.taken...Instance.0',
+         -'QualScore',
+         -'Number.of.live.births')
+
+Regression_columns = left_join(Regression_columns, completed_data, by = "Participant.ID")
+
+Regression_variables <- Regression_columns %>%
+  select(`Participant.ID`,
+         `Year.of.birth`,
+         `Townsend.deprivation.index.at.recruitment`,
+         `Ethnic.background...Instance.0`,
+         `Summed.MET.minutes.per.week.for.all.activity...Instance.0`,
+         `BMI`,
+         `Sleep.duration...Instance.0`,
+         `Sleeplessness...insomnia...Instance.0`,
+         `Number.of.treatments.medications.taken...Instance.0`,
+         `Vascular_problem_binary`,
+         `Diabetes_binary`,
+         `Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints`,
+         `Ever.had.osteoarthritis.affecting.one.or.more.joints..e.g..hip..knee..shoulder.`,
+         `Cancer.diagnosed.by.doctor...Instance.0`,
+         `Age.at.recruitment`,
+         `QualScore`,
+         `SmokingBaseline`,
+         `AlcoholBaseline`,
+         `DietScore`,
+         `Number.of.live.births`,
+         `mergedAge`,
+         `Oophorectomy_Occurred`,
+         `HRT_Used`,
+         `Contraceptive_Used`,
+         `Vitamin_or_Supplement_User`,
+         `LOE`,
+         `Frequency.of.tiredness.lethargy.in.last.2.weeks`,
+         `Illness.injury.bereavement.stress.in.last.2.years`,
+         `APOE4`,
+         `Has.Date`,
+         `Had_Dementia`)
+
+
+#ression table can be improved to be publication ready (will need variables amended accoridngly)
 mean_year_of_birth <- mean(women_table$Year.of.birth, na.rm = TRUE)
 mean_year_of_birth
 fm3 %>%
