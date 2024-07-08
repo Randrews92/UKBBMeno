@@ -322,7 +322,7 @@ cox_model <- glm(Had_Dementia ~ LOE + Body.mass.index..BMI....Instance.0 + Contr
 
 #next session
 women_apoe <- read.csv('women_apoe.csv')
-women_table <- read.csv('women_table_current.csv')
+women_table <- read.csv('women_table_depression.csv')
 men_table <- read.csv('men_table.csv')
 #count the amunt of Y/N or 1/0. e.g. 
 install.packages("dplyr")
@@ -434,38 +434,6 @@ met_median
 #Range = from 0-19,278
 #Median = 1644
 
-install.packages("mice")
-library(mice)
-
-imputed_data <- mice(women_table$Summed.MET.minutes.per.week.for.all.activity...Instance.0, m=1, method='pmm', maxit=5, seed=500, printFlag=FALSE)
-summary(imputed_data)
-
-completed_data <- complete(imputed_data, action = 1)
-
-sum(is.na(completed_data$Summed.MET.minutes.per.week.for.all.activity...Instance.0)) 
-
-library(dplyr)
-women_table <- women_table %>%
-  mutate(MET_category = case_when(
-    Summed.MET.minutes.per.week.for.all.activity...Instance.0 < 800 ~ "low",
-    Summed.MET.minutes.per.week.for.all.activity...Instance.0 >= 800 & Summed.MET.minutes.per.week.for.all.activity...Instance.0 < 2400 ~ "moderate",
-    Summed.MET.minutes.per.week.for.all.activity...Instance.0 >= 2400 ~ "high"
-  ))
-
-
-subset_data <- women_table %>%
-  select(`Participant.ID`,
-         `Number.of.live.births`,
-         `Age.at.first.live.birth...Instance.0`,
-         `Age.at.last.live.birth`)
-
-num_zeros <- sum(subset_data$Number.of.live.births == 0, na.rm = TRUE)
-print(num_zeros)
-
-sum(is.na(subset_data$Age.at.first.live.birth...Instance.0))
-sum(is.na(subset_data$Age.at.last.live.birth))
-sum(is.na(subset_data$Number.of.live.births))
-
 #Removing Age at first+last live birth for now due to missing data:
 library(dplyr)
 women_table  <- women_table  %>%
@@ -477,9 +445,6 @@ women_table  <- women_table  %>%
          -'Age.at.first.live.birth...Instance.0',
          -'Age.at.last.live.birth')
 
-women_table_depression <-women_table_depression %>%
-  select(-'Age.at.first.live.birth...Instance.0',
-         -'Age.at.last.live.birth')
 #Other columns
 #Vascular
 response_counts <- table(women_table$Vascular.heart.problems.diagnosed.by.doctor...Instance.0)
@@ -607,6 +572,34 @@ Regression_variables <- Regression_columns %>%
          `Has.Date`,
          `Had_Dementia`)
 
+#MET column
+library(dplyr)
+Regression_variables <- Regression_variables %>%
+  mutate(MET_category = case_when(
+    Summed.MET.minutes.per.week.for.all.activity...Instance.0 < 800 ~ "low",
+    Summed.MET.minutes.per.week.for.all.activity...Instance.0 >= 800 & Summed.MET.minutes.per.week.for.all.activity...Instance.0 < 2400 ~ "moderate",
+    Summed.MET.minutes.per.week.for.all.activity...Instance.0 >= 2400 ~ "high"
+  ))
+
+#Adding other variables:
+subset_data <- women_table %>%
+  select(`Participant.ID`,
+         `Sex`,
+         `DietScore_binary`,
+         `dementia_time_distance2`)
+
+Regression2 = left_join(Regression_variables, subset_data, by = "Participant.ID")
+
+install.packages("gtsummary")
+library(gtsummary)
+install.packages("survival")
+library(survival)
+library(dplyr)
+cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + APOE4 + BMI + DietScore_binary + Vitamin_or_Supplement_User + Vascular_problem_binary + Diabetes_binary + QualScore, data = Regression2)
+
+tbl_regression(cox_model, exponentiate=TRUE)
+
+summary(cox_model)
 
 #ression table can be improved to be publication ready (will need variables amended accoridngly)
 mean_year_of_birth <- mean(women_table$Year.of.birth, na.rm = TRUE)
