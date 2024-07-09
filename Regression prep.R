@@ -322,7 +322,7 @@ cox_model <- glm(Had_Dementia ~ LOE + Body.mass.index..BMI....Instance.0 + Contr
 
 #next session
 women_apoe <- read.csv('women_apoe.csv')
-women_table <- read.csv('women_table_depression.csv')
+women_table <- read.csv('Regression2.csv')
 men_table <- read.csv('men_table.csv')
 #count the amunt of Y/N or 1/0. e.g. 
 install.packages("dplyr")
@@ -581,6 +581,7 @@ Regression_variables <- Regression_variables %>%
     Summed.MET.minutes.per.week.for.all.activity...Instance.0 >= 2400 ~ "high"
   ))
 
+
 #Adding other variables:
 subset_data <- women_table %>%
   select(`Participant.ID`,
@@ -590,16 +591,47 @@ subset_data <- women_table %>%
 
 Regression2 = left_join(Regression_variables, subset_data, by = "Participant.ID")
 
+#Illness/bereavement column
+response_counts <- table(Regression2$Illness.injury.bereavement.stress.in.last.2.years)
+print(response_counts)
+
+library(dplyr)
+Regression2 <- Regression2 %>%
+  mutate(Illness.injury.bereavement.stress.in.last.2.years = ifelse(
+    Illness.injury.bereavement.stress.in.last.2.years %in% c('None of the above', 'NA', 'Prefer not to answer') | 
+      is.na(Illness.injury.bereavement.stress.in.last.2.years),
+    'No',
+    Illness.injury.bereavement.stress.in.last.2.years
+  ))
+
+colSums(is.na(Regression2))
+Regression2 <- Regression2  %>%
+  select(-"...2",
+         -"...1")
+#changes needed for certain variables
+#Smoking: very high association with Prefer not to answer (122), look into participants
+#Alcohol: change Prefer not to answer (23) to No? 
+#         Look into unexpected association with never
+#cancer: change Yes - you will be asked about this later by an interviewer to Yes
+#        change Do not know (150) and Prefer not to answer (14) to No?
+
+
+#cox
 install.packages("gtsummary")
 library(gtsummary)
 install.packages("survival")
 library(survival)
 library(dplyr)
-cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + APOE4 + BMI + DietScore_binary + Vitamin_or_Supplement_User + Vascular_problem_binary + Diabetes_binary + QualScore, data = Regression2)
+
+cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + APOE4 + BMI + DietScore_binary + Vitamin_or_Supplement_User + Vascular_problem_binary + Diabetes_binary + QualScore + MET_category + SmokingBaseline + AlcoholBaseline + Cancer.diagnosed.by.doctor...Instance.0, data = Regression2)
 
 tbl_regression(cox_model, exponentiate=TRUE)
 
 summary(cox_model)
+
+response_counts <- table(Regression2$Cancer.diagnosed.by.doctor...Instance.0)
+print(response_counts)
+
 
 #ression table can be improved to be publication ready (will need variables amended accoridngly)
 mean_year_of_birth <- mean(women_table$Year.of.birth, na.rm = TRUE)
