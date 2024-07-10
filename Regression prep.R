@@ -605,9 +605,21 @@ Regression2 <- Regression2 %>%
   ))
 
 colSums(is.na(Regression2))
+
+#changing to a count of stressful events
+count_stressful_events <- function(events) {
+  if (is.na(events) || events == "") {
+    return(0)
+  }
+  return(length(strsplit(events, "\\|")[[1]]))
+}
+Regression3 <- Regression2 %>%
+  mutate(number_of_stressful_events = sapply((Illness.injury.bereavement.stress.in.last.2.years), count_stressful_events))
+
+#remove original column
 library(dplyr)
-Regression2 <- Regression2  %>%
-  select(-"...1")
+Regression3 <- Regression3  %>%
+  select(-"Illness.injury.bereavement.stress.in.last.2.years")
 #changes needed for certain variables
 #Smoking: very high association with Prefer not to answer (122), look into participants
 #Alcohol: change Prefer not to answer (23) to No? 
