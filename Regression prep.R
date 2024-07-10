@@ -591,6 +591,47 @@ subset_data <- women_table %>%
 
 Regression2 = left_join(Regression_variables, subset_data, by = "Participant.ID")
 
+#Statin and beta blocker columns
+library(dplyr)
+statin_user <- statin_user_participant0 %>%
+  rename(Participant.ID = "Participant ID")
+Regression2 = left_join(Regression2, statin_user, by = "Participant.ID")
+Regression2 <- Regression2 %>%
+  rowwise() %>%
+  mutate(Statin_user = ifelse(any(!is.na(c(`Treatment/medication code | Instance 0`,
+                                           `Treatment/medication code | Instance 1`,
+                                           `Treatment/medication code | Instance 2`,
+                                           `Treatment/medication code | Instance 3`))),
+                              "Y", "N"))
+Regression2 <- ungroup(Regression2)
+response_counts <- table(Regression2$Statin_user)
+print(response_counts)
+
+Regression2 <- Regression2  %>%
+  select(-'Treatment/medication code | Instance 3',
+         -'Treatment/medication code | Instance 2',
+         -'Treatment/medication code | Instance 1',
+         -'Treatment/medication code | Instance 0')
+
+colSums(is.na(Regression2))
+betablocker_user <- betablocker_user_participant %>%
+  rename(Participant.ID = "Participant ID")
+Regression2 = left_join(Regression2, betablocker_user, by = "Participant.ID")
+Regression2 <- Regression2 %>%
+  rowwise() %>%
+  mutate(Betablocker_user = ifelse(any(!is.na(c(`Treatment/medication code | Instance 0`,
+                                                `Treatment/medication code | Instance 1`,
+                                                `Treatment/medication code | Instance 2`,
+                                                `Treatment/medication code | Instance 3`))),
+                                   "Y", "N"))
+Regression2 <- ungroup(Regression2)
+
+Regression2 <- Regression2  %>%
+  select(-'Treatment/medication code | Instance 3',
+         -'Treatment/medication code | Instance 2',
+         -'Treatment/medication code | Instance 1',
+         -'Treatment/medication code | Instance 0')
+
 #Illness/bereavement column
 response_counts <- table(Regression2$Illness.injury.bereavement.stress.in.last.2.years)
 print(response_counts)
@@ -628,46 +669,14 @@ Regression3 <- Regression3  %>%
 #        change Do not know (150) and Prefer not to answer (14) to No?
 
 
-#Statin and beta blocker columns
 library(dplyr)
-statin_user <- statin_user_participant0 %>%
-  rename(Participant.ID = "Participant ID")
-Regression2 = left_join(Regression2, statin_user, by = "Participant.ID")
-Regression2 <- Regression2 %>%
-  rowwise() %>%
-  mutate(Statin_user = ifelse(any(!is.na(c(`Treatment/medication code | Instance 0`,
-                                           `Treatment/medication code | Instance 1`,
-                                           `Treatment/medication code | Instance 2`,
-                                           `Treatment/medication code | Instance 3`))),
-                              "Y", "N"))
-Regression2 <- ungroup(Regression2)
-response_counts <- table(Regression2$Statin_user)
-print(response_counts)
+Regression3 <- Regression3 %>%
+  mutate(Cancer.diagnosed.by.doctor...Instance.0 = ifelse(Cancer.diagnosed.by.doctor...Instance.0 == "Yes - you will be asked about this later by an interviewer", "Yes", Cancer.diagnosed.by.doctor...Instance.0))
 
-Regression2 <- Regression2  %>%
-  select(-'Treatment/medication code | Instance 3',
-         -'Treatment/medication code | Instance 2',
-         -'Treatment/medication code | Instance 1',
-         -'Treatment/medication code | Instance 0')
+Regression3 <- Regression3 %>%
+  rename(Depression_diagnosis = "Has.Date")
 
-colSums(is.na(Regression2))
-betablocker_user <- betablocker_user_participant %>%
-  rename(Participant.ID = "Participant ID")
-Regression2 = left_join(Regression2, betablocker_user, by = "Participant.ID")
-Regression2 <- Regression2 %>%
-  rowwise() %>%
-  mutate(Betablocker_user = ifelse(any(!is.na(c(`Treatment/medication code | Instance 0`,
-                                           `Treatment/medication code | Instance 1`,
-                                           `Treatment/medication code | Instance 2`,
-                                           `Treatment/medication code | Instance 3`))),
-                              "Y", "N"))
-Regression2 <- ungroup(Regression2)
 
-Regression2 <- Regression2  %>%
-  select(-'Treatment/medication code | Instance 3',
-         -'Treatment/medication code | Instance 2',
-         -'Treatment/medication code | Instance 1',
-         -'Treatment/medication code | Instance 0')
 #cox
 install.packages("gtsummary")
 library(gtsummary)
@@ -675,13 +684,15 @@ install.packages("survival")
 library(survival)
 library(dplyr)
 
-cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + APOE4 + BMI + DietScore_binary + Vitamin_or_Supplement_User + Vascular_problem_binary + Diabetes_binary + QualScore + MET_category + SmokingBaseline + AlcoholBaseline + Cancer.diagnosed.by.doctor...Instance.0 + Statin_user + Betablocker_user, data = Regression2)
+cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + APOE4 + BMI + DietScore_binary + Vitamin_or_Supplement_User + Vascular_problem_binary + Diabetes_binary + QualScore + MET_category + SmokingBaseline + AlcoholBaseline + Cancer.diagnosed.by.doctor...Instance.0 + Statin_user + Betablocker_user + Depression_diagnosis + Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints + Ever.had.osteoarthritis.affecting.one.or.more.joints..e.g..hip..knee..shoulder., data = Regression3)
+
+cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + APOE4 + BMI + DietScore_binary + Vitamin_or_Supplement_User + Vascular_problem_binary + Diabetes_binary + QualScore + MET_category + SmokingBaseline + Statin_user + Betablocker_user + Depression_diagnosis, data = Regression3)
 
 tbl_regression(cox_model, exponentiate=TRUE)
 
 summary(cox_model)
 
-response_counts <- table(Regression2$Cancer.diagnosed.by.doctor...Instance.0)
+response_counts <- table(Regression3$Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints)
 print(response_counts)
 
 
