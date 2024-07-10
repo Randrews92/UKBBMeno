@@ -605,9 +605,9 @@ Regression2 <- Regression2 %>%
   ))
 
 colSums(is.na(Regression2))
+library(dplyr)
 Regression2 <- Regression2  %>%
-  select(-"...2",
-         -"...1")
+  select(-"...1")
 #changes needed for certain variables
 #Smoking: very high association with Prefer not to answer (122), look into participants
 #Alcohol: change Prefer not to answer (23) to No? 
@@ -616,6 +616,46 @@ Regression2 <- Regression2  %>%
 #        change Do not know (150) and Prefer not to answer (14) to No?
 
 
+#Statin and beta blocker columns
+library(dplyr)
+statin_user <- statin_user_participant0 %>%
+  rename(Participant.ID = "Participant ID")
+Regression2 = left_join(Regression2, statin_user, by = "Participant.ID")
+Regression2 <- Regression2 %>%
+  rowwise() %>%
+  mutate(Statin_user = ifelse(any(!is.na(c(`Treatment/medication code | Instance 0`,
+                                           `Treatment/medication code | Instance 1`,
+                                           `Treatment/medication code | Instance 2`,
+                                           `Treatment/medication code | Instance 3`))),
+                              "Y", "N"))
+Regression2 <- ungroup(Regression2)
+response_counts <- table(Regression2$Statin_user)
+print(response_counts)
+
+Regression2 <- Regression2  %>%
+  select(-'Treatment/medication code | Instance 3',
+         -'Treatment/medication code | Instance 2',
+         -'Treatment/medication code | Instance 1',
+         -'Treatment/medication code | Instance 0')
+
+colSums(is.na(Regression2))
+betablocker_user <- betablocker_user_participant %>%
+  rename(Participant.ID = "Participant ID")
+Regression2 = left_join(Regression2, betablocker_user, by = "Participant.ID")
+Regression2 <- Regression2 %>%
+  rowwise() %>%
+  mutate(Betablocker_user = ifelse(any(!is.na(c(`Treatment/medication code | Instance 0`,
+                                           `Treatment/medication code | Instance 1`,
+                                           `Treatment/medication code | Instance 2`,
+                                           `Treatment/medication code | Instance 3`))),
+                              "Y", "N"))
+Regression2 <- ungroup(Regression2)
+
+Regression2 <- Regression2  %>%
+  select(-'Treatment/medication code | Instance 3',
+         -'Treatment/medication code | Instance 2',
+         -'Treatment/medication code | Instance 1',
+         -'Treatment/medication code | Instance 0')
 #cox
 install.packages("gtsummary")
 library(gtsummary)
@@ -623,7 +663,7 @@ install.packages("survival")
 library(survival)
 library(dplyr)
 
-cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + APOE4 + BMI + DietScore_binary + Vitamin_or_Supplement_User + Vascular_problem_binary + Diabetes_binary + QualScore + MET_category + SmokingBaseline + AlcoholBaseline + Cancer.diagnosed.by.doctor...Instance.0, data = Regression2)
+cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + APOE4 + BMI + DietScore_binary + Vitamin_or_Supplement_User + Vascular_problem_binary + Diabetes_binary + QualScore + MET_category + SmokingBaseline + AlcoholBaseline + Cancer.diagnosed.by.doctor...Instance.0 + Statin_user + Betablocker_user, data = Regression2)
 
 tbl_regression(cox_model, exponentiate=TRUE)
 
