@@ -695,6 +695,89 @@ summary(cox_model)
 response_counts <- table(Regression3$Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints)
 print(response_counts)
 
+#HRT and contra columns
+HRT_Contra_ages_participant <- HRT_Contra_ages_participant %>%
+  rename(Participant.ID = "Participant ID")
+Regression3 = left_join(Regression3, HRT_Contra_ages_participant, by = "Participant.ID")
+
+Regression4 <- Regression3 %>%
+  mutate(across(starts_with("Age last used hormone-replacement therapy (HRT)"), 
+                ~replace(., . == "Still taking HRT", 999))) %>%
+  mutate(across(starts_with("Age last used hormone-replacement therapy (HRT)"), as.numeric))
+
+Regression4 <- Regression4 %>%
+  mutate(across(starts_with("Age started hormone-replacement therapy (HRT)"), as.numeric))
+
+# Function creation for still using section
+calculate_finished_HRT <- function(...) {
+  ages <- c(...)
+  valid_ages <- ages[!is.na(ages) & ages != 999]
+  max_age <- ifelse(length(valid_ages) > 0, max(valid_ages), NA)
+  still_using_index <- which(ages == 999)
+  max_age_index <- ifelse(length(valid_ages) > 0, which(ages == max_age), NA)
+  
+  if (length(still_using_index) > 0) {
+    latest_still_using_index <- max(still_using_index)
+    if (is.na(max_age) || latest_still_using_index > max_age_index) {
+      return(999)
+    } else {
+      return(max_age)
+    }
+  } else {
+    return(max_age)
+  }
+}
+
+Regression4 <- Regression4 %>%
+  rowwise() %>%
+  mutate(
+    started_HRT = min(c_across(starts_with("Age started hormone-replacement therapy (HRT)")), na.rm = TRUE),
+    finished_HRT = calculate_finished_HRT(c_across(starts_with("Age last used hormone-replacement therapy (HRT)")))
+  ) %>%
+  ungroup()
+
+Regression4 <- Regression4 %>%
+  mutate(started_HRT = if_else(is.infinite(started_HRT), NA_real_, started_HRT))
+
+#same for contraception
+Regression5 <- Regression4 %>%
+  mutate(across(starts_with("Age when last used oral contraceptive pill"), 
+                ~replace(., . == "Still taking the pill", 999))) %>%
+  mutate(across(starts_with("Age when last used oral contraceptive pill"), as.numeric))
+
+Regression5 <- Regression5 %>%
+  mutate(across(starts_with("Age started oral contraceptive pill"), as.numeric))
+
+# Function creation for still using section
+calculate_finished_Pill <- function(...) {
+  ages <- c(...)
+  valid_ages <- ages[!is.na(ages) & ages != 999]
+  max_age <- ifelse(length(valid_ages) > 0, max(valid_ages), NA)
+  still_using_index <- which(ages == 999)
+  max_age_index <- ifelse(length(valid_ages) > 0, which(ages == max_age), NA)
+  
+  if (length(still_using_index) > 0) {
+    latest_still_using_index <- max(still_using_index)
+    if (is.na(max_age) || latest_still_using_index > max_age_index) {
+      return(999)
+    } else {
+      return(max_age)
+    }
+  } else {
+    return(max_age)
+  }
+}
+
+Regression5 <- Regression5 %>%
+  rowwise() %>%
+  mutate(
+    started_pill = min(c_across(starts_with("Age started oral contraceptive pill")), na.rm = TRUE),
+    finished_pill = calculate_finished_Pill(c_across(starts_with("Age when last used oral contraceptive pill")))
+  ) %>%
+  ungroup()
+  
+Regression5 <- Regression5 %>%
+  mutate(started_pill = if_else(is.infinite(started_pill), NA_real_, started_pill))
 
 #ression table can be improved to be publication ready (will need variables amended accoridngly)
 mean_year_of_birth <- mean(women_table$Year.of.birth, na.rm = TRUE)
