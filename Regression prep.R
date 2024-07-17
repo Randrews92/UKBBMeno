@@ -322,7 +322,7 @@ cox_model <- glm(Had_Dementia ~ LOE + Body.mass.index..BMI....Instance.0 + Contr
 
 #next session
 women_apoe <- read.csv('women_apoe.csv')
-women_table <- read.csv('Regression2.csv')
+women_table <- read.csv('Regression5.csv')
 men_table <- read.csv('men_table.csv')
 #count the amunt of Y/N or 1/0. e.g. 
 install.packages("dplyr")
@@ -676,24 +676,11 @@ Regression3 <- Regression3 %>%
 Regression3 <- Regression3 %>%
   rename(Depression_diagnosis = "Has.Date")
 
-
-#cox
-install.packages("gtsummary")
-library(gtsummary)
-install.packages("survival")
-library(survival)
 library(dplyr)
-
-cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + APOE4 + BMI + DietScore_binary + Vitamin_or_Supplement_User + Vascular_problem_binary + Diabetes_binary + QualScore + MET_category + SmokingBaseline + AlcoholBaseline + Cancer.diagnosed.by.doctor...Instance.0 + Statin_user + Betablocker_user + Depression_diagnosis + Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints + Ever.had.osteoarthritis.affecting.one.or.more.joints..e.g..hip..knee..shoulder., data = Regression3)
-
-cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + APOE4 + BMI + DietScore_binary + Vitamin_or_Supplement_User + Vascular_problem_binary + Diabetes_binary + QualScore + MET_category + SmokingBaseline + Statin_user + Betablocker_user + Depression_diagnosis, data = Regression3)
-
-tbl_regression(cox_model, exponentiate=TRUE)
-
-summary(cox_model)
-
-response_counts <- table(Regression3$Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints)
-print(response_counts)
+Regression5 <- Regression5  %>%
+  select(-"...1",
+         -"...2",
+         -"...3")
 
 #HRT and contra columns
 HRT_Contra_ages_participant <- HRT_Contra_ages_participant %>%
@@ -775,9 +762,61 @@ Regression5 <- Regression5 %>%
     finished_pill = calculate_finished_Pill(c_across(starts_with("Age when last used oral contraceptive pill")))
   ) %>%
   ungroup()
-  
+
 Regression5 <- Regression5 %>%
   mutate(started_pill = if_else(is.infinite(started_pill), NA_real_, started_pill))
+
+# Create the yrs_on_HRT column
+Regression5 <- Regression5 %>%
+  mutate(yrs_on_HRT = if_else(finished_HRT == 999, "still_using", as.character(finished_HRT - started_HRT)))
+
+Regression5 <- Regression5 %>%
+  mutate(yrs_on_pill = if_else(finished_pill == 999, "still_using", as.character(finished_pill - started_pill)))
+
+#delete columns
+keyword <- "oral"
+matching_columns <- grep(keyword, names(Regression5), value = TRUE)
+print(matching_columns)
+
+library(dplyr)
+Regression5 <- Regression5  %>%
+  select(-"Age started hormone-replacement therapy (HRT) | Instance 0",
+         -"Age started hormone-replacement therapy (HRT) | Instance 1",
+         -"Age started hormone-replacement therapy (HRT) | Instance 2",
+         -"Age started hormone-replacement therapy (HRT) | Instance 3",
+         -"Age last used hormone-replacement therapy (HRT) | Instance 0",
+         -"Age last used hormone-replacement therapy (HRT) | Instance 1",
+         -"Age last used hormone-replacement therapy (HRT) | Instance 2",
+         -"Age last used hormone-replacement therapy (HRT) | Instance 3",
+         -"Age started oral contraceptive pill | Instance 0",
+         -"Age started oral contraceptive pill | Instance 2",
+         -"Age started oral contraceptive pill | Instance 1",
+         -"Age started oral contraceptive pill | Instance 3",
+         -"Age when last used oral contraceptive pill | Instance 0",
+         -"Age when last used oral contraceptive pill | Instance 1",
+         -"Age when last used oral contraceptive pill | Instance 2",
+         -"Age when last used oral contraceptive pill | Instance 3")
+
+
+#cox
+install.packages("gtsummary")
+library(gtsummary)
+install.packages("survival")
+library(survival)
+library(dplyr)
+
+cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + APOE4 + BMI + DietScore_binary + Vitamin_or_Supplement_User + Vascular_problem_binary + Diabetes_binary + QualScore + MET_category + SmokingBaseline + AlcoholBaseline + Cancer.diagnosed.by.doctor...Instance.0 + Statin_user + Betablocker_user + Depression_diagnosis + Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints + Ever.had.osteoarthritis.affecting.one.or.more.joints..e.g..hip..knee..shoulder., data = Regression3)
+
+cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + APOE4 + BMI + DietScore_binary + Vitamin_or_Supplement_User + Vascular_problem_binary + Diabetes_binary + QualScore + MET_category + SmokingBaseline + Statin_user + Betablocker_user + Depression_diagnosis, data = Regression3)
+
+tbl_regression(cox_model, exponentiate=TRUE)
+
+summary(cox_model)
+
+response_counts <- table(Regression5$Contraceptive_Used)
+print(response_counts)
+
+colSums(is.na(Regression5))
 
 #ression table can be improved to be publication ready (will need variables amended accoridngly)
 mean_year_of_birth <- mean(women_table$Year.of.birth, na.rm = TRUE)
