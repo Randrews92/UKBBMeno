@@ -797,7 +797,54 @@ Regression5 <- Regression5  %>%
          -"Age when last used oral contraceptive pill | Instance 2",
          -"Age when last used oral contraceptive pill | Instance 3")
 
-
+#Removing outliers messing up the cox
+removed_participants <- Regression6$Participant.ID[Regression6$SmokingBaseline == 'Prefer not to answer']
+Regression7 <- Regression6[Regression6$SmokingBaseline != 'Prefer not to answer', ]
+print(removed_participants)
+#removed smoking participants - 1082133, 1118345, 1193582, 1244246, 1324617, 1358756, 1396087, 1446991, 1454853, 1506408, 1523732
+# 1602389, 1809073, 1821677, 1854375, 1972466, 2007889, 2024211, 2041232, 2062039, 2098910, 2149372,
+# 2173974, 2188385, 2210717, 2292807, 2297568, 2369862, 2372338, 2376733, 2393308, 2532618, 2544333,
+# 2550031, 2595940, 2658427, 2710997, 2736714, 2798149, 2877554, 3014229, 3018593, 3019632, 3044489,
+# 3063720, 3072392, 3078367, 3121343, 3178458, 3178915, 3208220, 3217262, 3347288, 3369296, 3427511,
+# 3456164, 3472884, 3546575, 3599656, 3631922, 3648892, 3658654, 3748195, 3767689, 3771718, 3879295,
+# 3920079, 3933540, 4070786, 4143394, 4158809, 4226970, 4277040, 4324901, 4361578, 4368392, 4403441,
+# 4427029, 4438265, 4461197, 4485502, 4640534, 4710676, 4745340, 4777320, 4816857, 4828298, 4864117,
+# 4889155, 4919939, 4957220, 4979054, 5013679, 5059012, 5063207, 5100809, 5132371, 5172910, 5185934,
+# 5201240, 5238799, 5273729, 5333993, 5340204, 5475092, 5508495, 5520593, 5521892, 5551592, 5573053,
+# 5599029, 5600511, 5673180, 5693777, 5722292, 5748345, 5753920, 5814835, 5878719, 5966815, 5999693, 6010771
+removed_participants <- Regression7$Participant.ID[Regression7$AlcoholBaseline == 'Prefer not to answer']
+Regression7 <- Regression7[Regression7$AlcoholBaseline != 'Prefer not to answer', ]
+print(removed_participants)
+# removed alcohol ppts: 1020440, 1062481, 1226002, 1381827, 1476412, 1488343, 2681796, 2763318, 3391934, 3411134, 3661732,
+# 3870048, 4071199, 4332463, 4417474, 4567401, 5053071, 5482477, 5592040, 5633609, 5721182, 5804286,
+removed_participants <- Regression7$Participant.ID[Regression7$Cancer.diagnosed.by.doctor...Instance.0 == 'Prefer not to answer']
+Regression7 <- Regression7[Regression7$Cancer.diagnosed.by.doctor...Instance.0 != 'Prefer not to answer', ]
+print(removed_participants)
+#removed cancer ppts: 1062138, 1365390, 2177351, 2236394, 2243993, 2672050, 4063704, 4369356, 5195804, 5287775, 5418701, 5524027, 5711105
+removed_participants <- Regression7$Participant.ID[Regression7$Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints == 'Prefer not to answer']
+Regression7 <- Regression7[Regression7$Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints != 'Prefer not to answer', ]
+print(removed_participants)
+#removed rheumatoid ppts:1146032, 1586384, 2667042, 2712207
+removed_participants <- Regression7$Participant.ID[Regression7$Ever.had.osteoarthritis.affecting.one.or.more.joints..e.g..hip..knee..shoulder. == 'Prefer not to answer']
+Regression7 <- Regression7[Regression7$Ever.had.osteoarthritis.affecting.one.or.more.joints..e.g..hip..knee..shoulder. != 'Prefer not to answer', ]
+print(removed_participants)
+#removed osteo ppts: 2588207, 3425533, 5231735, 5891021
+# Replace 'Do not know' with 'No'
+Regression7 <- Regression7 %>%
+  mutate(`Ever.had.osteoarthritis.affecting.one.or.more.joints..e.g..hip..knee..shoulder.` = recode(
+    `Ever.had.osteoarthritis.affecting.one.or.more.joints..e.g..hip..knee..shoulder.`,
+    'Do not know' = 'No'
+  ))
+Regression7 <- Regression7 %>%
+  mutate(`Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints` = recode(
+    `Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints`,
+    'Do not know' = 'No'
+  ))
+removed_participants <- Regression7$Participant.ID[Regression7$Sleeplessness...insomnia...Instance.0 == 'Prefer not to answer']
+Regression7 <- Regression7[Regression7$Sleeplessness...insomnia...Instance.0 != 'Prefer not to answer', ]
+print(removed_participants)
+#removed insomnia ppts: 1037225, 1037253, 1076677, 1274243, 1399154, 1535831, 2508318, 2891276, 2914897, 3428102, 3572115,
+# 3767630, 3790245, 3791346, 3813086, 4019979, 4254813, 4558506, 4947402, 5359636, 5864952, 5900053, 5912482
 #cox
 install.packages("gtsummary")
 library(gtsummary)
@@ -805,15 +852,16 @@ install.packages("survival")
 library(survival)
 library(dplyr)
 
-cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + APOE4 + BMI + DietScore_binary + Vitamin_or_Supplement_User + Vascular_problem_binary + Diabetes_binary + QualScore + MET_category + SmokingBaseline + AlcoholBaseline + Cancer.diagnosed.by.doctor...Instance.0 + Statin_user + Betablocker_user + Depression_diagnosis + Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints + Ever.had.osteoarthritis.affecting.one.or.more.joints..e.g..hip..knee..shoulder., data = Regression3)
+cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + APOE4 + BMI + DietScore_binary + Vitamin_or_Supplement_User + Vascular_problem_binary + Diabetes_binary + QualScore + MET_category + SmokingBaseline + AlcoholBaseline + Cancer.diagnosed.by.doctor...Instance.0 + Statin_user + Betablocker_user + Depression_diagnosis + Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints + Ever.had.osteoarthritis.affecting.one.or.more.joints..e.g..hip..knee..shoulder. + number_of_stressful_events + Sleeplessness...insomnia...Instance.0 + Townsend.deprivation.index.at.recruitment + Number.of.treatments.medications.taken...Instance.0 + Number.of.live.births, data = Regression7)
 
-cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + APOE4 + BMI + DietScore_binary + Vitamin_or_Supplement_User + Vascular_problem_binary + Diabetes_binary + QualScore + MET_category + SmokingBaseline + Statin_user + Betablocker_user + Depression_diagnosis, data = Regression3)
+cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + APOE4 + BMI + DietScore_binary + Vitamin_or_Supplement_User + Vascular_problem_binary:Statin_user:Betablocker_user + Diabetes_binary + QualScore + MET_category + SmokingBaseline + AlcoholBaseline + Cancer.diagnosed.by.doctor...Instance.0 + Depression_diagnosis + Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints + Ever.had.osteoarthritis.affecting.one.or.more.joints..e.g..hip..knee..shoulder. + number_of_stressful_events + Sleeplessness...insomnia...Instance.0 + Townsend.deprivation.index.at.recruitment + Number.of.treatments.medications.taken...Instance.0 + Number.of.live.births, data = Regression7)
 
 tbl_regression(cox_model, exponentiate=TRUE)
 
 summary(cox_model)
 
-response_counts <- table(Regression5$Contraceptive_Used)
+#Frequency.of.tiredness.lethargy.in.last.2.weeks, Sleep.duration...Instance.0, Ethnic.background...Instance.0, yrs_on_HRT, yrs_on_pill
+response_counts <- table(Regression7$Ethnic.background...Instance.0)
 print(response_counts)
 
 colSums(is.na(Regression5))
