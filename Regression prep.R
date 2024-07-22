@@ -845,6 +845,39 @@ Regression7 <- Regression7[Regression7$Sleeplessness...insomnia...Instance.0 != 
 print(removed_participants)
 #removed insomnia ppts: 1037225, 1037253, 1076677, 1274243, 1399154, 1535831, 2508318, 2891276, 2914897, 3428102, 3572115,
 # 3767630, 3790245, 3791346, 3813086, 4019979, 4254813, 4558506, 4947402, 5359636, 5864952, 5900053, 5912482
+
+#Grouping Ethnicity
+response_counts <- table(Regression7$Ethnic.background...Instance.0)
+print(response_counts)
+library(dplyr)
+Regression7 <- Regression7 %>%
+  mutate(Ethnicity = case_when(
+    Ethnic.background...Instance.0 %in% c('Indian', 'Bangladeshi', 'Pakistani', 'Any other Asian background') ~ 'Asian',
+    Ethnic.background...Instance.0 == 'Chinese' ~ 'Chinese',
+    Ethnic.background...Instance.0 %in% c('Caribbean', 'African', 'Any other Black background', 'Black or Black British') ~ 'Black',
+    Ethnic.background...Instance.0 %in% c('White', 'British', 'Any other white background', 'Irish') ~ 'White',
+    Ethnic.background...Instance.0 %in% c('Mixed', 'Any other mixed background', 'White and Asian', 'White and Black African', 'White and Black Caribbean') ~ 'Mixed',
+    Ethnic.background...Instance.0 %in% c('Do not know', 'Prefer not to answer', 'Other ethnic group') ~ 'Other',
+    TRUE ~ NA_character_ # To handle any other unexpected values
+  ))
+
+#Frequency.of.tiredness.lethargy.in.last.2.weeks
+Regression7 <- Regression7 %>%
+  mutate(Frequency.of.tiredness.lethargy.in.last.2.weeks = ifelse(
+    Frequency.of.tiredness.lethargy.in.last.2.weeks %in% c('Do not know', 'Prefer not to answer'),
+    'Other',
+    Frequency.of.tiredness.lethargy.in.last.2.weeks
+  ))
+
+#Sleep duration
+Regression7 <- Regression7 %>%
+  mutate(Sleep_duration = case_when(
+    Sleep.duration...Instance.0 %in% c('Do not know', 'Prefer not to answer') ~ 'Unknown',
+    Sleep.duration...Instance.0 < 7 ~ 'Short',
+    Sleep.duration...Instance.0 >= 7 & Sleep.duration...Instance.0 <= 9 ~ 'Normal',
+    Sleep.duration...Instance.0 > 9 ~ 'Long',
+    TRUE ~ NA_character_ # To handle any other unexpected values
+  ))
 #cox
 install.packages("gtsummary")
 library(gtsummary)
@@ -860,11 +893,25 @@ tbl_regression(cox_model, exponentiate=TRUE)
 
 summary(cox_model)
 
-#Frequency.of.tiredness.lethargy.in.last.2.weeks, Sleep.duration...Instance.0, Ethnic.background...Instance.0, yrs_on_HRT, yrs_on_pill
+# Sleep.duration...Instance.0, Ethnic.background...Instance.0, yrs_on_HRT, yrs_on_pill
 response_counts <- table(Regression7$Ethnic.background...Instance.0)
 print(response_counts)
 
 colSums(is.na(Regression5))
+
+#Releveling
+Regression7$AlcoholBaseline <- factor(Regression7$AlcoholBaseline)
+Regression7$AlcoholBaseline <- relevel(Regression7$AlcoholBaseline, ref = 'Never')
+
+Regression7$SmokingBaseline <- factor(Regression7$SmokingBaseline)
+Regression7$SmokingBaseline <- relevel(Regression7$SmokingBaseline, ref = 'Never')
+
+Regression7$Cancer.diagnosed.by.doctor...Instance.0 <- factor(Regression7$Cancer.diagnosed.by.doctor...Instance.0)
+Regression7$Cancer.diagnosed.by.doctor...Instance.0 <- relevel(Regression7$Cancer.diagnosed.by.doctor...Instance.0, ref = 'No')
+
+Regression7$MET_category <- factor(Regression7$MET_category)
+Regression7$MET_category <- relevel(Regression7$MET_category, ref = 'moderate')
+
 
 #ression table can be improved to be publication ready (will need variables amended accoridngly)
 mean_year_of_birth <- mean(women_table$Year.of.birth, na.rm = TRUE)
