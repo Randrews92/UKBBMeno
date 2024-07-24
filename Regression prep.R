@@ -897,7 +897,7 @@ summary(cox_model)
 response_counts <- table(Regression7$Ethnic.background...Instance.0)
 print(response_counts)
 
-colSums(is.na(Regression5))
+colSums(is.na(Regression8))
 
 #Releveling
 Regression7$AlcoholBaseline <- factor(Regression7$AlcoholBaseline)
@@ -912,6 +912,23 @@ Regression7$Cancer.diagnosed.by.doctor...Instance.0 <- relevel(Regression7$Cance
 Regression7$MET_category <- factor(Regression7$MET_category)
 Regression7$MET_category <- relevel(Regression7$MET_category, ref = 'moderate')
 
+library(dplyr)
+Regression8 <- Regression8  %>%
+  select(-"...1",
+         -"...3",
+         -"...2")
+#time on hrt/pill
+Regression8 <- Regression8 %>%
+  mutate(yrs_on_HRT_inst0 = Age.at.recruitment - started_HRT)
+
+Regression8 <- Regression8 %>%
+  mutate(HRT_at_inst0 = if_else(yrs_on_HRT_inst0 > 0, "Y", "N", missing = "N"))
+
+Regression8 <- Regression8 %>%
+  mutate(yrs_on_pill_inst0 = Age.at.recruitment - started_pill)
+
+Regression9 <- Regression8 %>%
+  mutate(pill_at_inst0 = if_else(yrs_on_pill_inst0 > 0, "Y", "N", missing = "N"))
 
 #ression table can be improved to be publication ready (will need variables amended accoridngly)
 mean_year_of_birth <- mean(women_table$Year.of.birth, na.rm = TRUE)
