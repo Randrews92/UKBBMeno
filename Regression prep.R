@@ -322,7 +322,7 @@ cox_model <- glm(Had_Dementia ~ LOE + Body.mass.index..BMI....Instance.0 + Contr
 
 #next session
 women_apoe <- read.csv('women_apoe.csv')
-women_table <- read.csv('Regression5.csv')
+women_table <- read.csv('Regression9.csv')
 men_table <- read.csv('men_table.csv')
 #count the amunt of Y/N or 1/0. e.g. 
 install.packages("dplyr")
@@ -850,14 +850,13 @@ print(removed_participants)
 response_counts <- table(Regression7$Ethnic.background...Instance.0)
 print(response_counts)
 library(dplyr)
-Regression7 <- Regression7 %>%
+Regression9 <- Regression9 %>%
   mutate(Ethnicity = case_when(
     Ethnic.background...Instance.0 %in% c('Indian', 'Bangladeshi', 'Pakistani', 'Any other Asian background') ~ 'Asian',
-    Ethnic.background...Instance.0 == 'Chinese' ~ 'Chinese',
     Ethnic.background...Instance.0 %in% c('Caribbean', 'African', 'Any other Black background', 'Black or Black British') ~ 'Black',
     Ethnic.background...Instance.0 %in% c('White', 'British', 'Any other white background', 'Irish') ~ 'White',
     Ethnic.background...Instance.0 %in% c('Mixed', 'Any other mixed background', 'White and Asian', 'White and Black African', 'White and Black Caribbean') ~ 'Mixed',
-    Ethnic.background...Instance.0 %in% c('Do not know', 'Prefer not to answer', 'Other ethnic group') ~ 'Other',
+    Ethnic.background...Instance.0 %in% c('Do not know', 'Prefer not to answer', 'Other ethnic group', 'Chinese') ~ 'Other',
     TRUE ~ NA_character_ # To handle any other unexpected values
   ))
 
@@ -870,9 +869,25 @@ Regression7 <- Regression7 %>%
   ))
 
 #Sleep duration
-Regression7 <- Regression7 %>%
+response_counts <- table(women_table$Sleep.duration...Instance.0)
+print(response_counts)
+test <- women_table %>%
+  mutate(across(starts_with("Sleep.duration"), as.factor))
+test <- test %>%
   mutate(Sleep_duration = case_when(
     Sleep.duration...Instance.0 %in% c('Do not know', 'Prefer not to answer') ~ 'Unknown',
+    Sleep.duration...Instance.0 < 7 ~ 'Short',
+    Sleep.duration...Instance.0 >= 7 & Sleep.duration...Instance.0 <= 9 ~ 'Normal',
+    Sleep.duration...Instance.0 > 9 ~ 'Long',
+    TRUE ~ NA_character_ # To handle any other unexpected values
+  ))
+
+Regression9 <- Regression9 %>%
+  mutate(across(starts_with("Sleep.duration"), as.numeric)) #all prefer not to answer and do not know now NA
+
+Regression9 <- Regression9 %>%
+  mutate(Sleep_duration = case_when(
+    Sleep.duration...Instance.0 %in% c('NA') ~ 'Unknown',
     Sleep.duration...Instance.0 < 7 ~ 'Short',
     Sleep.duration...Instance.0 >= 7 & Sleep.duration...Instance.0 <= 9 ~ 'Normal',
     Sleep.duration...Instance.0 > 9 ~ 'Long',
@@ -885,33 +900,37 @@ install.packages("survival")
 library(survival)
 library(dplyr)
 
-cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + APOE4 + BMI + DietScore_binary + Vitamin_or_Supplement_User + Vascular_problem_binary + Diabetes_binary + QualScore + MET_category + SmokingBaseline + AlcoholBaseline + Cancer.diagnosed.by.doctor...Instance.0 + Statin_user + Betablocker_user + Depression_diagnosis + Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints + Ever.had.osteoarthritis.affecting.one.or.more.joints..e.g..hip..knee..shoulder. + number_of_stressful_events + Sleeplessness...insomnia...Instance.0 + Townsend.deprivation.index.at.recruitment + Number.of.treatments.medications.taken...Instance.0 + Number.of.live.births, data = Regression7)
-
-cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + APOE4 + BMI + DietScore_binary + Vitamin_or_Supplement_User + Vascular_problem_binary:Statin_user:Betablocker_user + Diabetes_binary + QualScore + MET_category + SmokingBaseline + AlcoholBaseline + Cancer.diagnosed.by.doctor...Instance.0 + Depression_diagnosis + Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints + Ever.had.osteoarthritis.affecting.one.or.more.joints..e.g..hip..knee..shoulder. + number_of_stressful_events + Sleeplessness...insomnia...Instance.0 + Townsend.deprivation.index.at.recruitment + Number.of.treatments.medications.taken...Instance.0 + Number.of.live.births, data = Regression7)
-
+cox_model <- coxph(Surv(dementia_time_distance2, Had_Dementia) ~ LOE + Contraceptive_Used + HRT_Used + Oophorectomy_Occurred + APOE4 + BMI + DietScore_binary + Vitamin_or_Supplement_User + Vascular_problem_binary + Diabetes_binary + QualScore + MET_category + SmokingBaseline + AlcoholBaseline + Cancer.diagnosed.by.doctor...Instance.0 + Statin_user + Betablocker_user + Depression_diagnosis + Ever.had.rheumatoid.arthritis.affecting.one.or.more.joints + Ever.had.osteoarthritis.affecting.one.or.more.joints..e.g..hip..knee..shoulder. + number_of_stressful_events + Sleeplessness...insomnia...Instance.0 + Townsend.deprivation.index.at.recruitment + Number.of.treatments.medications.taken...Instance.0 + Number.of.live.births + Ethnicity + Sleep_duration + Frequency.of.tiredness.lethargy.in.last.2.weeks, data = Regression9)
 tbl_regression(cox_model, exponentiate=TRUE)
-
 summary(cox_model)
 
-# Sleep.duration...Instance.0, Ethnic.background...Instance.0, yrs_on_HRT, yrs_on_pill
+# yrs_on_HRT, yrs_on_pill
 response_counts <- table(Regression7$Ethnic.background...Instance.0)
 print(response_counts)
 
-colSums(is.na(Regression8))
+colSums(is.na(Regression9))
 
 #Releveling
-Regression7$AlcoholBaseline <- factor(Regression7$AlcoholBaseline)
-Regression7$AlcoholBaseline <- relevel(Regression7$AlcoholBaseline, ref = 'Never')
+Regression9$AlcoholBaseline <- factor(Regression9$AlcoholBaseline)
+Regression9$AlcoholBaseline <- relevel(Regression9$AlcoholBaseline, ref = 'Never')
 
-Regression7$SmokingBaseline <- factor(Regression7$SmokingBaseline)
-Regression7$SmokingBaseline <- relevel(Regression7$SmokingBaseline, ref = 'Never')
+Regression9$SmokingBaseline <- factor(Regression9$SmokingBaseline)
+Regression9$SmokingBaseline <- relevel(Regression9$SmokingBaseline, ref = 'Never')
 
-Regression7$Cancer.diagnosed.by.doctor...Instance.0 <- factor(Regression7$Cancer.diagnosed.by.doctor...Instance.0)
-Regression7$Cancer.diagnosed.by.doctor...Instance.0 <- relevel(Regression7$Cancer.diagnosed.by.doctor...Instance.0, ref = 'No')
+Regression9$Cancer.diagnosed.by.doctor...Instance.0 <- factor(Regression9$Cancer.diagnosed.by.doctor...Instance.0)
+Regression9$Cancer.diagnosed.by.doctor...Instance.0 <- relevel(Regression9$Cancer.diagnosed.by.doctor...Instance.0, ref = 'No')
 
-Regression7$MET_category <- factor(Regression7$MET_category)
-Regression7$MET_category <- relevel(Regression7$MET_category, ref = 'moderate')
+Regression9$MET_category <- factor(Regression9$MET_category)
+Regression9$MET_category <- relevel(Regression9$MET_category, ref = 'moderate')
 
+Regression9$Frequency.of.tiredness.lethargy.in.last.2.weeks <- factor(Regression9$Frequency.of.tiredness.lethargy.in.last.2.weeks)
+Regression9$Frequency.of.tiredness.lethargy.in.last.2.weeks <- relevel(Regression9$Frequency.of.tiredness.lethargy.in.last.2.weeks, ref = 'Not at all')
+
+Regression9$Ethnicity <- factor(Regression9$Ethnicity)
+Regression9$Ethnicity <- relevel(Regression9$Ethnicity, ref = 'White')
+
+Regression9$Sleep_duration <- factor(Regression9$Sleep_duration)
+Regression9$Sleep_duration <- relevel(Regression9$Sleep_duration, ref = 'Normal')
 library(dplyr)
 Regression8 <- Regression8  %>%
   select(-"...1",
@@ -929,6 +948,8 @@ Regression8 <- Regression8 %>%
 
 Regression9 <- Regression8 %>%
   mutate(pill_at_inst0 = if_else(yrs_on_pill_inst0 > 0, "Y", "N", missing = "N"))
+
+
 
 #ression table can be improved to be publication ready (will need variables amended accoridngly)
 mean_year_of_birth <- mean(women_table$Year.of.birth, na.rm = TRUE)
