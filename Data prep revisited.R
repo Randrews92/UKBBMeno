@@ -787,17 +787,144 @@ fullcog_reg <- demo_apoe %>%
   left_join(cog_reg, by = "Participant.ID")
 
 
-# Create binary demntia column (include death reason in there)
+# Use dx download fullcog.csv to get the full set
+
+##### Creating cognitive testing columns 
+
+cog_tests <- read.csv("Women_cognitive_tests_participant.csv")
+
+cog_tests[cog_tests == ""] <- NA
+
+na_counts <- data.frame(Column = names(cog_tests), 
+                        NA_Count = colSums(is.na(cog_tests)))
+na_counts
+
+# Recode and merge pilot pairs matching
+
+# If it's NA, use 'Body.mass.index..BMI....Instance.0.participant...p23104_i0.'
+cog_tests <- cog_tests %>%
+  mutate(
+    merged_Number.of.incorrect.matches.in.round...Instance.0...Array.1 = coalesce(
+      Number.of.incorrect.matches.in.round...Instance.0...Array.1,
+      Number.of.incorrect.matches.in.round..pilot....Instance.0...Array.1
+    )
+  )
+
+
+cog_tests <- cog_tests %>%
+  mutate(
+    merged_Number.of.incorrect.matches.in.round...Instance.0...Array.2 = coalesce(
+      Number.of.incorrect.matches.in.round...Instance.0...Array.2,
+      Number.of.incorrect.matches.in.round..pilot....Instance.0...Array.2
+    )
+  )
+
+
+cog_tests <- cog_tests %>%
+  mutate(
+    merged_Number.of.incorrect.matches.in.round...Instance.0...Array.3 = coalesce(
+      Number.of.incorrect.matches.in.round...Instance.0...Array.3,
+      Number.of.incorrect.matches.in.round..pilot....Instance.0...Array.3
+    )
+  )
+
+
+na_counts <- data.frame(Column = names(cog_tests), 
+                        NA_Count = colSums(is.na(cog_tests)))
+na_counts
+
+# Calculate the instance 0 matched pairs score by summing merged array 1,2,3
+cog_tests <- cog_tests%>%
+  rowwise() %>%
+  mutate(Pairs_Score_Instance.0 = sum(merged_Number.of.incorrect.matches.in.round...Instance.0...Array.1,
+                                      merged_Number.of.incorrect.matches.in.round...Instance.0...Array.2,
+                                      merged_Number.of.incorrect.matches.in.round...Instance.0...Array.3 , na.rm = TRUE))
+
+# Calculate the instance 1 matched pairs score by summing merged array 1,2,3
+cog_tests <- cog_tests%>%
+  rowwise() %>%
+  mutate(Pairs_Score_Instance.1 = sum(Number.of.incorrect.matches.in.round...Instance.1...Array.1,
+                                      Number.of.incorrect.matches.in.round...Instance.1...Array.2,
+                                      Number.of.incorrect.matches.in.round...Instance.1...Array.3 , na.rm = TRUE))
+
+
+# Calculate the instance 2 matched pairs score by summing merged array 1,2,3
+cog_tests <- cog_tests%>%
+  rowwise() %>%
+  mutate(Pairs_Score_Instance.2 = sum(Number.of.incorrect.matches.in.round...Instance.2...Array.1,
+                                      Number.of.incorrect.matches.in.round...Instance.2...Array.2,
+                                      Number.of.incorrect.matches.in.round...Instance.2...Array.3 , na.rm = TRUE))
+
+
+# Calculate the instance 3 matched pairs score by summing merged array 1,2,3
+cog_tests <- cog_tests%>%
+  rowwise() %>%
+  mutate(Pairs_Score_Instance.3 = sum(Number.of.incorrect.matches.in.round...Instance.3...Array.1,
+                                      Number.of.incorrect.matches.in.round...Instance.3...Array.2,
+                                      Number.of.incorrect.matches.in.round...Instance.3...Array.3 , na.rm = TRUE))
+
+
+cog_tests <- cog_tests %>%
+  mutate(Pairs_Score_Instance.0 = ifelse(is.na(merged_Number.of.incorrect.matches.in.round...Instance.0...Array.1), NA, Pairs_Score_Instance.0))
+
+cog_tests <- cog_tests %>%
+  mutate(Pairs_Score_Instance.1 = ifelse(is.na(Number.of.incorrect.matches.in.round...Instance.1...Array.1), NA, Pairs_Score_Instance.1))
+
+
+cog_tests <- cog_tests %>%
+  mutate(Pairs_Score_Instance.2 = ifelse(is.na(Number.of.incorrect.matches.in.round...Instance.2...Array.1), NA, Pairs_Score_Instance.2))
+
+cog_tests <- cog_tests %>%
+  mutate(Pairs_Score_Instance.3 = ifelse(is.na(Number.of.incorrect.matches.in.round...Instance.3...Array.1), NA, Pairs_Score_Instance.3))
+
+
+# Now we can subset our data to add to the regression data
+
+cog_tests_reg <- cog_tests %>%
+  select(Participant.ID,
+         Mean.time.to.correctly.identify.matches...Instance.0,
+         Mean.time.to.correctly.identify.matches...Instance.1,
+         Mean.time.to.correctly.identify.matches...Instance.2,
+         Mean.time.to.correctly.identify.matches...Instance.3,
+         Pairs_Score_Instance.0,
+         Pairs_Score_Instance.1,
+         Pairs_Score_Instance.2,
+         Pairs_Score_Instance.3)
+
+
+write.csv(cog_tests_reg,'cog_tests_reg.csv')
+
+##### Prepping menopause table to identify new cases from baseline. 
+
+meno <- read.csv("Women_menopause_participant.csv")
+
+## Perimenopause
+
+# Individuals in this study (https://www.frontiersin.org/journals/dementia/articles/10.3389/frdem.2023.1098693/full) were placed into the following groups: 
+# (1) “premenopausal” (women who reported being premenopausal at all timepoints), 
+# (2) “perimenopausal” (women who reported being premenopausal at baseline, and postmenopause in subsequent assessments)
+# (3) “postmenopausal” (women who reported being postmenopausal at all timepoints).
+
+# used HRT in instance 0,1,2,3 but said No to menopause instance 0, 1, 2, or 3 and didn't have a surgical menopause
+
+# Identify women who were in premenopause, not sure (hysterectomy), spontaeneous menopause, surgical menopause, perimenopause during instance 0
+
+# Create column identifying all women who also attended in instances 1, 2, 3 (max instance column)
+
+
+##### Prepping the dementia outcomes
+
+# Create binary dementia column (include death reason in there)
 # Create age at dementia column 
 
-# Create age at death 
+# Create age at death column
 
 
-# Create date of event (dementia first, then death, or last dementia diagnosis in UKBB-2023-01-01)
+# Create date of event (dementia first, then death, or last update in UKBB-2023-01-01)
 
-# Create age at event
+# Create age at event from date of event
 
-# Remove any minus ages (as suggest dementia/ death occurred before UKBB)
+# Remove any minus ages (as suggest dementia/ death occurred before UKBB participation)
 
 # Use age at assessment and age at event to create time to event 
 
