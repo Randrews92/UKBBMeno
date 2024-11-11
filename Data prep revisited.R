@@ -1,12 +1,14 @@
 
 install.packages("gtsummary")
 install.packages("broom.mixed")
+install.packages("tidyverse")
 library(gtsummary)
 library(broom.mixed)
 library(data.table)
-install.packages("tidyverse")
 library(tidyverse)
-
+# Loading libraries
+install.packages('car')
+library(car) # For Anova and repeated measures functions
 
 
 
@@ -1070,9 +1072,196 @@ meno_all_instances_reg <- meno %>%
 
 write_csv(meno_all_instances_reg, "meno_all_instances_reg.csv")
 
-##### Prepping the dementia outcomesdx doqb
+##### Prepping the tests to define cognitve signifcant decline based on this paper: https://pmc.ncbi.nlm.nih.gov/articles/PMC4844168/
+# That paper used "smallest real difference" to identify significant cogntive decline across time. 
 
-cogo <- read.csv("cognitive_outcomes_reg.csv")
+cat(colnames(cog_tests), sep = "\n")
+
+cog_tests<- read.csv("cog_tests_reg.csv")
+
+head(cog_tests)
+
+# Load necessary libraries
+install.packages('afex')
+install.packages('emmeans')
+library(afex) # for mixed ANOVA
+library(emmeans) # for post-hoc and extracting SD_within
+
+library(dplyr)
+library(tidyr)
+
+# Step 1: Standardize column names (remove duplicate Instance parts)
+cog_tests <- cog_tests %>%
+  rename_with(
+    .cols = starts_with("Mean.time"),
+    .fn = ~ gsub("\\_Instance\\_Instance", "_Instance", .)
+  ) %>%
+  rename_with(
+    .cols = starts_with("Pairs_Score"),
+    .fn = ~ gsub("\\_Instance\\_Instance", "_Instance", .)
+  )
+
+# Step 2: Reshape the data into long format
+cognitive_long <- cog_tests %>%
+  pivot_longer(
+    cols = starts_with("Mean.time") | starts_with("Pairs_Score"),
+    names_to = c("Test_Type", "Instance"),
+    names_sep = "Instance.",
+    values_to = "Score"
+  ) %>%
+  mutate(
+    Instance = as.integer(Instance),
+    Participant.ID = as.factor(Participant.ID)
+  )
+
+# Check the reshaped data
+head(cognitive_long)
+
+cat(colnames(cognitive_long), sep = "\n")
+# Step 2: Conduct repeated-measures ANOVA for processing speed
+anova_processing <- aov_car(Score ~ Instance + Error(Participant.ID/Instance), 
+                            data = filter(cognitive_long, Test_Type == "Mean.time.to.correctly.identify.matches..."))
+
+# Extract the within-subject SD for processing speed
+# Assuming your ANOVA model is stored in `anova_memory`
+anova_processing_residuals <- residuals(anova_processing)
+
+# Calculate the within-subject standard deviation
+SD_within_processing <- sd(anova_processing_residuals)
+
+# Step 3: Calculate SRD for processing speed at 95% confidence
+z_value <- 1.96 # for 95% confidence
+SRD_processing <- z_value * SD_within_processing * sqrt(2)
+
+# Step 4: Conduct repeated-measures ANOVA for visual memory
+anova_memory <- aov_car(Score ~ Instance + Error(Participant.ID/Instance), 
+                        data = filter(cognitive_long, Test_Type == "Pairs_Score_"))
+
+# Extract the within-subject SD for visual memory
+# Assuming your ANOVA model is stored in `anova_memory`
+anova_memory_residuals <- residuals(anova_memory)
+
+# Calculate the within-subject standard deviation
+SD_within_memory <- sd(anova_memory_residuals)
+
+# Step 5: Calculate SRD for visual memory at 95% confidence
+SRD_memory <- z_value * SD_within_memory * sqrt(2)
+
+# Step 6: Apply the SRD threshold to determine significant decline
+# Using the original `cog_tests` data, compute declines across instances
+cog_tests <- cog_tests %>%
+  mutate(
+    Significant_Decline_Processing = if_else(
+      pmin(
+        abs(Mean.time.to.correctly.identify.matches...Instance.1 - Mean.time.to.correctly.identify.matches...Instance.0),
+        abs(Mean.time.to.correctly.identify.matches...Instance.2 - Mean.time.to.correctly.identify.matches...Instance.1),
+        abs(Mean.time.to.correctly.identify.matches...Instance.3 - Mean.time.to.correctly.identify.matches...Instance.2),
+        na.rm = TRUE
+      ) > SRD_processing, 
+      "Yes", "No"
+    ),
+    
+    Significant_Decline_Visual_Memory = if_else(
+      pmin(
+        abs(Pairs_Score_Instance.1 - Pairs_Score_Instance.0),
+        abs(Pairs_Score_Instance.2 - Pairs_Score_Instance.1),
+        abs(Pairs_Score_Instance.3 - Pairs_Score_Instance.2),
+        na.rm = TRUE
+      ) > SRD_memory, 
+      "Yes", "No"
+    )
+  )
+
+cog_tests%>%
+  group_by(Significant_Decline_Visual_Memory)%>%
+  summarise(count=n_distinct(Participant.ID))
+
+
+write_csv(cog_tests, "cog_tests_reg.csv")
+
+# Lets explore whether the menopause transition impacted cognitive decline 
+
+meno <- read.csv("meno_all_instances_reg.csv")
+
+
+cog_meno <- meno%>%
+  left_join(cog_tests, by='Participant.ID')
+
+cog_meno%>%
+  group_by(Transition_to_meno, Significant_Decline_Visual_Memory, Significant_Decline_Processing)%>%
+  summarise(count=n_distinct(Participant.ID))
+
+# Assuming 'cognitive_data' contains the variables: Participant.ID, Time, Cognitive_Score, Menopause_Status
+cog_meno$Significant_Decline_Processing <- as.factor(cog_meno$Significant_Decline_Processing)
+
+cog_meno$Significant_Decline_Visual_Memory <- as.factor(cog_meno$Significant_Decline_Visual_Memory)
+
+
+cognitive_model <- lm(Mean.time.to.correctly.identify.matches...Instance.3 ~ Transition_to_meno,
+                        data = cog_meno)
+
+summary(cognitive_model)
+
+
+cognitive_model <- lm(Pairs_Score_Instance.3~ Transition_to_meno,
+                      data = cog_meno)
+
+summary(cognitive_model)
+
+# Perform a t-test comparing the means between groups
+t_test_result <- t.test(Mean.time.to.correctly.identify.matches...Instance.2 ~ Transition_to_meno, data = cog_meno)
+
+print(t_test_result)
+
+
+t_test_result <- t.test(Pairs_Score_Instance.3 ~ Transition_to_meno, data = cog_meno)
+
+print(t_test_result)
+
+# Perform one-way ANOVA to compare processing speed across menopausal status levels
+anova_result <- aov(Mean.time.to.correctly.identify.matches...Instance.2 ~ Menopausal_Status_Instance_0, data = cog_meno)
+print(anova_result)
+
+# Perform linear regression comparing processing speed by menopausal status
+lm_result <- lm(Mean.time.to.correctly.identify.matches...Instance.0 ~ Menopausal_Status_Instance_0, data = cog_meno)
+
+# View the regression summary
+summary(lm_result)
+
+
+# Let's add the new data onto the big table 
+
+fullcog <- read.csv("fullcog_reg.csv")
+
+
+
+fullcog_meno <- fullcog%>%
+  left_join(cog_meno, by='Participant.ID')
+
+
+fullcog_meno <- fullcog_meno %>%
+  select(-X.1,
+         -X.x,
+         -X.y)
+
+
+fullcog_meno%>%
+  group_by(Significant_Decline_Visual_Memory)%>%
+  summarise(count=n_distinct(Participant.ID))
+
+subset_full_cog <- fullcog_meno%>%filter(Max_Instance>1)
+
+# Perform linear regression comparing processing speed by menopausal status
+lm_result <- lm(Mean.time.to.correctly.identify.matches...Instance.0 ~ Menopausal_Status_Instance_0, data = fullcog_meno)
+
+# View the regression summary
+summary(lm_result)
+
+
+write.csv(fullcog_meno, "fullcog_meno.csv")
+
+# Now let's see whether cognitive decline is associated with dementia outcomes in those who transtioned
+
 # Create binary dementia column (include death reason in there)
 # Create age at dementia column 
 
