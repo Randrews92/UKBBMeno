@@ -898,6 +898,8 @@ write.csv(cog_tests_reg,'cog_tests_reg.csv')
 
 meno <- read.csv("Women_menopause_participant.csv")
 
+cat(colnames(meno), sep = "\n")
+
 ## Perimenopause
 
 # Individuals in this study (https://www.frontiersin.org/journals/dementia/articles/10.3389/frdem.2023.1098693/full) were placed into the following groups: 
@@ -907,13 +909,170 @@ meno <- read.csv("Women_menopause_participant.csv")
 
 # used HRT in instance 0,1,2,3 but said No to menopause instance 0, 1, 2, or 3 and didn't have a surgical menopause
 
-# Identify women who were in premenopause, not sure (hysterectomy), spontaeneous menopause, surgical menopause, perimenopause during instance 0
+# Identify women who were in premenopause, menopause, surgical menopause, perimenopause during instance 0
 
-# Create column identifying all women who also attended in instances 1, 2, 3 (max instance column)
+unique(meno$Had.menopause...Instance.0)
+
+# Create menopausal status columns for each instance
+meno[meno == ""] <- NA
 
 
-##### Prepping the dementia outcomes
+# Remove rows with 'Prefer not to answer'
+meno <- meno %>%
+  filter(Had.menopause...Instance.0 != "Prefer not to answer")
 
+
+meno <- meno %>%
+  mutate(
+    # Instance 0 logic: Assign initial menopausal status
+    Menopausal_Status_Instance_0 = case_when(
+      Bilateral.oophorectomy..both.ovaries.removed....Instance.0 == "Yes" ~ "Surgical menopause",  # Surgical menopause first
+      Had.menopause...Instance.0 == "Yes" ~ "Postmenopausal",  # Then postmenopausal
+      (Had.menopause...Instance.0 == "No" | Had.menopause...Instance.0 %in% c("Not sure - other reason", "Not sure - had a hysterectomy")) & 
+        ("Yes" %in% c(Had.menopause...Instance.1, Had.menopause...Instance.2, Had.menopause...Instance.3)) & 
+        !("Yes" %in% c(Bilateral.oophorectomy..both.ovaries.removed....Instance.1, Bilateral.oophorectomy..both.ovaries.removed....Instance.2, Bilateral.oophorectomy..both.ovaries.removed....Instance.3)) ~ "Perimenopausal",  # Perimenopausal last in order
+      (Had.menopause...Instance.0 == "No" | Had.menopause...Instance.0 %in% c("Not sure - other reason", "Not sure - had a hysterectomy"))  
+      & Ever.used.hormone.replacement.therapy..HRT....Instance.0 == "Yes" ~ "Perimenopausal",  # Also transition to Perimenopausal if on HRT
+      Had.menopause...Instance.0 == "No" & ("No" %in% c(Had.menopause...Instance.1, Had.menopause...Instance.2, Had.menopause...Instance.3)) ~ "Premenopausal",  # Otherwise premenopausal
+      Had.menopause...Instance.0 %in% c("Not sure - other reason", "Not sure - had a hysterectomy") ~ "Not Sure",
+      TRUE ~ NA_character_  # Handle missing cases
+    ),
+    
+    # Instance 1 logic: Transition based on previous status
+    Menopausal_Status_Instance_1 = case_when(
+      Menopausal_Status_Instance_0 == "Perimenopausal" & Had.menopause...Instance.1 == "Yes" ~ "Postmenopausal",  # Transition to postmenopausal
+      Menopausal_Status_Instance_0 == "Perimenopausal" & Bilateral.oophorectomy..both.ovaries.removed....Instance.1 == "Yes" ~ "Surgical menopause",  # Transition to surgical menopause
+      Menopausal_Status_Instance_0 == "Perimenopausal" ~ "Perimenopausal",  # Keep perimenopausal
+      Menopausal_Status_Instance_0 == "Postmenopausal" ~ "Postmenopausal",  # Stay postmenopausal
+      Menopausal_Status_Instance_0 == "Surgical menopause" ~ "Surgical menopause",  # Stay surgical menopause
+      Bilateral.oophorectomy..both.ovaries.removed....Instance.1 == "Yes" ~ "Surgical menopause",  # If oophorectomy, transition to surgical menopause
+      Had.menopause...Instance.1 == "Yes" ~ "Postmenopausal",  # If menopause is Yes, transition to postmenopausal
+      Had.menopause...Instance.1 == "No" & ("No" %in% c(Had.menopause...Instance.2, Had.menopause...Instance.3)) ~ "Premenopausal",  # Stay premenopausal if no change
+      Had.menopause...Instance.1 == "No" & Ever.used.hormone.replacement.therapy..HRT....Instance.1 == "Yes" ~ "Perimenopausal",  # Transition to perimenopausal if HRT
+      TRUE ~ NA_character_
+    ),
+    
+    # Instance 2 logic: Transition based on previous status
+    Menopausal_Status_Instance_2 = case_when(
+      Menopausal_Status_Instance_1 == "Perimenopausal" & Had.menopause...Instance.2 == "Yes" ~ "Postmenopausal",  # Transition to postmenopausal
+      Menopausal_Status_Instance_1 == "Perimenopausal" & Bilateral.oophorectomy..both.ovaries.removed....Instance.2 == "Yes" ~ "Surgical menopause",  # Transition to surgical menopause
+      Menopausal_Status_Instance_1 == "Perimenopausal" ~ "Perimenopausal",  # Keep perimenopausal
+      Menopausal_Status_Instance_1 == "Postmenopausal" ~ "Postmenopausal",  # Stay postmenopausal
+      Menopausal_Status_Instance_1 == "Surgical menopause" ~ "Surgical menopause",  # Stay surgical menopause
+      Bilateral.oophorectomy..both.ovaries.removed....Instance.2 == "Yes" ~ "Surgical menopause",  # If oophorectomy, transition to surgical menopause
+      Had.menopause...Instance.2 == "Yes" ~ "Postmenopausal",  # If menopause is Yes, transition to postmenopausal
+      Had.menopause...Instance.2 == "No" & ("No" %in% c(Had.menopause...Instance.3)) ~ "Premenopausal",  # Stay premenopausal if no change
+      Had.menopause...Instance.2 == "No" & Ever.used.hormone.replacement.therapy..HRT....Instance.2 == "Yes" ~ "Perimenopausal",  # Transition to perimenopausal if HRT
+      TRUE ~ NA_character_
+    ),
+    
+    # Instance 3 logic: Final check for transitions
+    Menopausal_Status_Instance_3 = case_when(
+      Menopausal_Status_Instance_2 == "Perimenopausal" & Had.menopause...Instance.3 == "Yes" ~ "Postmenopausal",  # Transition to postmenopausal
+      Menopausal_Status_Instance_2 == "Perimenopausal" & Bilateral.oophorectomy..both.ovaries.removed....Instance.3 == "Yes" ~ "Surgical menopause",  # Transition to surgical menopause
+      Menopausal_Status_Instance_2 == "Perimenopausal" ~ "Perimenopausal",  # Keep perimenopausal
+      Menopausal_Status_Instance_2 == "Postmenopausal" ~ "Postmenopausal",  # Stay postmenopausal
+      Menopausal_Status_Instance_2 == "Surgical menopause" ~ "Surgical menopause",  # Stay surgical menopause
+      Bilateral.oophorectomy..both.ovaries.removed....Instance.3 == "Yes" ~ "Surgical menopause",  # If oophorectomy, transition to surgical menopause
+      Had.menopause...Instance.3 == "Yes" ~ "Postmenopausal",  # If menopause is Yes, transition to postmenopausal
+      Had.menopause...Instance.3 == "No" ~ "Premenopausal",  # Stay premenopausal if no change
+      Had.menopause...Instance.3 == "No" & Ever.used.hormone.replacement.therapy..HRT....Instance.3 == "Yes" ~ "Perimenopausal",  # Transition to perimenopausal if HRT
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  ungroup()
+
+      
+
+
+# Count how many we have per meno status at baseline 
+
+meno%>%
+  group_by(Menopausal_Status_Instance_0)%>%
+  summarise(count=n_distinct(Participant.ID))
+
+# Figure out Not Sure coded ones 
+subset_notsure <- meno%>%filter(grepl('Not Sure', Menopausal_Status_Instance_0))
+subset_notsure%>%
+  group_by(Had.menopause...Instance.2)%>%
+  summarise(count=n_distinct(Participant.ID))
+
+# Figure out Perimenopause coded ones 
+subset <- meno%>%filter(grepl('Perimenopausal', Menopausal_Status_Instance_0))
+subset%>%
+  group_by(Menopausal_Status_Instance_2)%>%
+  summarise(count=n_distinct(Participant.ID))
+
+# Assuming columns Had.menopause...Instance.0 through Had.menopause...Instance.3
+meno$Max_Instance <- apply(meno[, c("Had.menopause...Instance.0", 
+                                    "Had.menopause...Instance.1", 
+                                    "Had.menopause...Instance.2", 
+                                    "Had.menopause...Instance.3")], 
+                           1, function(row) {
+                             # Find the maximum instance with a non-NA value
+                             max(which(!is.na(row)), na.rm = TRUE) - 1
+                           })
+
+# Replace -Inf with NA if all instances are NA
+meno$Max_Instance[is.infinite(meno$Max_Instance)] <- NA
+
+# Count how many we have per max instance 
+
+meno%>%
+  group_by(Max_Instance)%>%
+  summarise(count=n_distinct(Participant.ID))
+
+
+#Work out who transitioned through menopause so we can have a number: 
+  
+  # Assuming your menopausal status columns are named Menopausal.Status...Instance.0 to Menopausal.Status...Instance.3
+  meno$Transition_to_meno <- apply(meno[, c("Menopausal_Status_Instance_0", 
+                                                        "Menopausal_Status_Instance_1", 
+                                                        "Menopausal_Status_Instance_2", 
+                                                        "Menopausal_Status_Instance_3")], 
+                                               1, function(statuses) {
+                                                 # Check if there is a transition from premenopausal/Not Sure/perimenopausal to postmenopausal/surgical
+                                                 for (i in seq_along(statuses)[-length(statuses)]) {
+                                                   if (statuses[i] %in% c("Premenopausal", "Not Sure", "Perimenopausal") &&
+                                                       any(statuses[(i+1):length(statuses)] %in% c("Postmenopausal", "Surgical menopause"))) {
+                                                     return("Y")
+                                                   }
+                                                 }
+                                                 return("N")
+                                               })
+
+
+  meno%>%
+    group_by(Transition_to_meno)%>%
+    summarise(count=n_distinct(Participant.ID))
+  
+unique(meno$Menopausal_Status_Instance_0)
+
+# Now create and save the subset 
+
+cat(colnames(meno), sep = "\n")
+
+meno_all_instances_reg <- meno %>%
+  select(-Ever.had.hysterectomy..womb.removed....Instance.0,
+         -Ever.had.hysterectomy..womb.removed....Instance.1,
+         -Ever.had.hysterectomy..womb.removed....Instance.2,
+         -Ever.had.hysterectomy..womb.removed....Instance.3,
+         -Non.cancer.illness.code..self.reported...Instance.0,
+         -Non.cancer.illness.code..self.reported...Instance.1,
+         -Non.cancer.illness.code..self.reported...Instance.2,
+         -Non.cancer.illness.code..self.reported...Instance.3,
+         -Treatment.medication.code...Instance.0,
+         -Treatment.medication.code...Instance.1,
+         -Treatment.medication.code...Instance.2,
+         -Treatment.medication.code...Instance.3,
+         -Date.N95.first.reported..menopausal.and.other.perimenopausal.disorders.)
+
+
+write_csv(meno_all_instances_reg, "meno_all_instances_reg.csv")
+
+##### Prepping the dementia outcomesdx doqb
+
+cogo <- read.csv("cognitive_outcomes_reg.csv")
 # Create binary dementia column (include death reason in there)
 # Create age at dementia column 
 
