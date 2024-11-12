@@ -1087,8 +1087,7 @@ install.packages('emmeans')
 library(afex) # for mixed ANOVA
 library(emmeans) # for post-hoc and extracting SD_within
 
-library(dplyr)
-library(tidyr)
+cat(colnames(cog_tests), sep = "\n")
 
 # Step 1: Standardize column names (remove duplicate Instance parts)
 cog_tests <- cog_tests %>%
@@ -1251,11 +1250,313 @@ fullcog_meno%>%
 
 subset_full_cog <- fullcog_meno%>%filter(Max_Instance>1)
 
+subset_meno <- fullcog_meno%>%filter(grepl('Y', Transition_to_meno))
+
+
 # Perform linear regression comparing processing speed by menopausal status
-lm_result <- lm(Mean.time.to.correctly.identify.matches...Instance.0 ~ Menopausal_Status_Instance_0, data = fullcog_meno)
+
+fullcog_meno <- read.csv("fullcog_meno.csv")
+lm_result <- lm( ~ Menopausal_Status_Instance_0, data =subset_meno)
 
 # View the regression summary
 summary(lm_result)
+
+
+write.csv(fullcog_meno, "fullcog_meno.csv")
+
+
+### Revisit smallest real difference as doesn't look right: 
+
+cat(colnames(fullcog_meno), sep = "\n")
+
+# Step 1: Standardize column names (remove duplicate Instance parts)
+fullcog_meno <- fullcog_meno %>%
+  rename_with(
+    .cols = starts_with("Mean.time"),
+    .fn = ~ gsub("\\_Instance\\_Instance", "_Instance", .)
+  ) %>%
+  rename_with(
+    .cols = starts_with("Pairs_Score"),
+    .fn = ~ gsub("\\_Instance\\_Instance", "_Instance", .)
+  )
+
+# Step 2: Reshape the data into long format
+cognitive_long <- fullcog_meno %>%
+  pivot_longer(
+    cols = starts_with("Mean.time") | starts_with("Pairs_Score"),
+    names_to = c("Test_Type", "Instance"),
+    names_sep = "Instance.",
+    values_to = "Score"
+  ) %>%
+  mutate(
+    Instance = as.integer(Instance),
+    Participant.ID = as.factor(Participant.ID)
+  )
+
+# Check the reshaped data
+head(cognitive_long)
+
+cat(colnames(cognitive_long), sep = "\n")
+# Step 2: Conduct repeated-measures ANOVA for processing speed
+anova_processing <- aov_car(Score ~ Instance + Error(Participant.ID/Instance), 
+                            data = filter(cognitive_long, Test_Type == "Mean.time.to.correctly.identify.matches..."))
+
+# Extract the within-subject SD for processing speed
+# Assuming your ANOVA model is stored in `anova_memory`
+anova_processing_residuals <- residuals(anova_processing)
+
+# Calculate the within-subject standard deviation
+SD_within_processing <- sd(anova_processing_residuals)
+
+# Step 3: Calculate SRD for processing speed at 95% confidence
+z_value <- 1.96 # for 95% confidence
+SRD_processing <- z_value * SD_within_processing * sqrt(2)
+
+# Step 4: Conduct repeated-measures ANOVA for visual memory
+anova_memory <- aov_car(Score ~ Instance + Error(Participant.ID/Instance), 
+                        data = filter(cognitive_long, Test_Type == "Pairs_Score_"))
+
+# Extract the within-subject SD for visual memory
+# Assuming your ANOVA model is stored in `anova_memory`
+anova_memory_residuals <- residuals(anova_memory)
+
+# Calculate the within-subject standard deviation
+SD_within_memory <- sd(anova_memory_residuals)
+
+# Step 5: Calculate SRD for visual memory at 95% confidence
+SRD_memory <- z_value * SD_within_memory * sqrt(2)
+
+# Step 6: Apply the SRD threshold to determine significant decline
+# Step 6: Apply the SRD threshold to determine significant decline specifically for increases in scores
+# Using the original `fullcog_meno` data, compute declines across instances
+
+fullcog_meno <- fullcog_meno %>%
+  mutate(
+    Significant_Decline_Processing = if_else(
+      pmax(
+        Mean.time.to.correctly.identify.matches...Instance.1 - Mean.time.to.correctly.identify.matches...Instance.0,
+        Mean.time.to.correctly.identify.matches...Instance.2 - Mean.time.to.correctly.identify.matches...Instance.0,
+        Mean.time.to.correctly.identify.matches...Instance.3 - Mean.time.to.correctly.identify.matches...Instance.0,
+        na.rm = TRUE
+      ) > SRD_processing, 
+      "Yes", "No"
+    ),
+    
+    Significant_Decline_Visual_Memory = if_else(
+      pmax(
+        Pairs_Score_Instance.1 - Pairs_Score_Instance.0,
+        Pairs_Score_Instance.2 - Pairs_Score_Instance.0,
+        Pairs_Score_Instance.3 - Pairs_Score_Instance.0,
+        na.rm = TRUE
+      ) > SRD_memory, 
+      "Yes", "No"
+    )
+  )
+
+# Summarize results to check count of participants with a significant decline
+fullcog_meno %>%
+  group_by(Significant_Decline_Processing, Significant_Decline_Visual_Memory) %>%
+  summarise(count = n_distinct(Participant.ID))
+
+# Summarize counts by significant decline status
+fullcog_meno %>%
+  group_by(Significant_Decline_Visual_Memory) %>%
+  summarise(count = n_distinct(Participant.ID))
+
+
+
+
+
+# Assuming `reliability` is known for your tests (https://pmc.ncbi.nlm.nih.gov/articles/PMC7170235/)
+reliability_processing <- 0.55 # example value
+reliability_memory <- 0.41 # example value
+
+# Compute SE_diff for each test
+SE_diff_processing <- sqrt(2) * SD_within_processing * sqrt(1 - reliability_processing)
+SE_diff_memory <- sqrt(2) * SD_within_memory * sqrt(1 - reliability_memory)
+
+# Identify significant declines based on RCI
+# Identify significant declines based on RCI with NA handling for missing follow-ups
+fullcog_meno <- fullcog_meno %>%
+  mutate(
+    Significant_Decline_Processing_R = case_when(
+      # Check if all follow-up instances are NA
+      is.na(Mean.time.to.correctly.identify.matches...Instance.1) &
+        is.na(Mean.time.to.correctly.identify.matches...Instance.2) &
+        is.na(Mean.time.to.correctly.identify.matches...Instance.3) ~ NA_character_,
+      
+      # Check if any follow-up instance shows a significant decline from baseline
+      (Mean.time.to.correctly.identify.matches...Instance.1 - Mean.time.to.correctly.identify.matches...Instance.0) / SE_diff_processing >= 1.96 |
+        (Mean.time.to.correctly.identify.matches...Instance.2 - Mean.time.to.correctly.identify.matches...Instance.0) / SE_diff_processing >= 1.96 |
+        (Mean.time.to.correctly.identify.matches...Instance.3 - Mean.time.to.correctly.identify.matches...Instance.0) / SE_diff_processing >= 1.96 ~ "Yes",
+      
+      # Set "No" for participants without significant declines
+      TRUE ~ "No"
+    ),
+    
+    Significant_Decline_Visual_Memory_R = case_when(
+      # Check if all follow-up instances are NA
+      is.na(Pairs_Score_Instance.1) &
+        is.na(Pairs_Score_Instance.2) &
+        is.na(Pairs_Score_Instance.3) ~ NA_character_,
+      
+      # Check if any follow-up instance shows a significant decline from baseline
+      (Pairs_Score_Instance.1 - Pairs_Score_Instance.0) / SE_diff_memory >= 1.96 |
+        (Pairs_Score_Instance.2 - Pairs_Score_Instance.0) / SE_diff_memory >= 1.96 |
+        (Pairs_Score_Instance.3 - Pairs_Score_Instance.0) / SE_diff_memory >= 1.96 ~ "Yes",
+      
+      # Set "No" for participants without significant declines
+      TRUE ~ "No"
+    )
+  )
+
+
+# Summarize results to check count of participants with a significant decline
+fullcog_meno %>%
+  group_by(Significant_Decline_Visual_Memory_R) %>%
+  summarise(count = n_distinct(Participant.ID))
+
+# Summarize counts by significant decline status
+fullcog_meno %>%
+  group_by(Significant_Decline_Processing_R) %>%
+  summarise(count = n_distinct(Participant.ID))
+
+### Lets run regressions to explore how menopause impacts cogntive testing
+
+na_counts <- data.frame(Column = names(fullcog_meno), 
+                        NA_Count = colSums(is.na(fullcog_meno)))
+
+cat(apply(na_counts, 1, paste, collapse = ": "), sep = "\n")
+
+cat(colnames(fullcog_meno), sep = "\n")
+
+fullcog_meno$Significant_Decline_Processing_R <- as.factor(fullcog_meno$Significant_Decline_Processing_R)
+fullcog_meno%>%
+  group_by(Hearing.difficulty.problems...Instance.0)%>%
+  summarise(count=n_distinct(Participant.ID))
+
+lm_processing <- glm(Significant_Decline_Processing_R ~ Transition_to_meno+
+                   Had.menopause...Instance.0.y
+                 +Age.when.attended.assessment.centre...Instance.0+
+                   Mean.time.to.correctly.identify.matches...Instance.0+
+                   Ethnicity+
+                   DietScore+
+                   Townsend.deprivation.index.at.recruitment+
+                   Ever.smoked...Instance.0+
+                   Alcohol.drinker.status...Instance.0+
+                   Weight.change.compared.with.1.year.ago...Instance.0+
+                   merged_BMI_column+
+                   APOE4+
+                   Number.of.live.births...Instance.0+
+                   Sleeplessness...insomnia...Instance.0+
+                   Morning.evening.person..chronotype....Instance.0+
+                 Getting.up.in.morning...Instance.0+
+                   Frequency.of.depressed.mood.in.last.2.weeks...Instance.0
+                 +Frequency.of.tiredness...lethargy.in.last.2.weeks...Instance.0+
+                   Hearing.difficulty.problems...Instance.0+
+                   Disability.benefits+
+                   Overall.health.rating...Instance.0+
+                   Yrs_OC+ 
+                   Yrs_HRT+
+                   Long.standing.illness..disability.or.infirmity...Instance.0+
+                   +Serious_illness_injury_assault_to_yourself
+                 +Serious_illness_injury_assault_of_close_relative
+                 +Had_endometriosis
+                + Diagnosed_infertility
+                 +Death_of_spouse_or_partner
+                 +Death_of_close_relative
+                 +Financial_difficulties
+                 +Marital_separation_divorce
+                 +Seen.doctor..GP..for.nerves..anxiety..tension.or.depression...Instance.0
+                 +Diabetes.diagnosed.by.doctor...Instance.0
+                 +High_blood_pressure
+                 +Angina
+                 +Heart_attack
+                 +Stroke
+                 +Back_pain
+                 +Hip_pain
+                 +Knee_pain
+                 +Headache
+                 +Neck_or_shoulder_pain
+                 +Stomach_or_abdominal_pain
+                 +Facial_pain
+                 +Pain_all_over_body
+                 +Irritability...Instance.0
+                +Miserableness...Instance.0
+                +Sensitivity...hurt.feelings...Instance.0
+                +Fed.up.feelings...Instance.0
+                +Nervous.feelings...Instance.0
+                +Worrier...anxious.feelings...Instance.0
+                +Tense....highly.strung....Instance.0
+                +Loneliness..isolation...Instance.0
+                   , data =fullcog_meno, family = binomial)
+
+# View the regression summary
+summary(lm_processing)
+
+fullcog_meno$Significant_Decline_Visual_Memory_R <- as.factor(fullcog_meno$Significant_Decline_Visual_Memory_R)
+
+lm_memory <- glm(Significant_Decline_Visual_Memory_R ~ Transition_to_meno+
+                       Had.menopause...Instance.0.y
+                     +Age.when.attended.assessment.centre...Instance.0+
+                       Pairs_Score_Instance.0+
+                       Ethnicity+
+                       DietScore+
+                       Townsend.deprivation.index.at.recruitment+
+                       Ever.smoked...Instance.0+
+                       Alcohol.drinker.status...Instance.0+
+                       Weight.change.compared.with.1.year.ago...Instance.0+
+                       merged_BMI_column+
+                       APOE4+
+                       Number.of.live.births...Instance.0+
+                       Sleeplessness...insomnia...Instance.0+
+                       Morning.evening.person..chronotype....Instance.0+
+                       Getting.up.in.morning...Instance.0+
+                       Frequency.of.depressed.mood.in.last.2.weeks...Instance.0
+                     +Frequency.of.tiredness...lethargy.in.last.2.weeks...Instance.0+
+                       Hearing.difficulty.problems...Instance.0+
+                       Disability.benefits+
+                       Overall.health.rating...Instance.0+
+                       Yrs_OC+ 
+                       Yrs_HRT+
+                       Long.standing.illness..disability.or.infirmity...Instance.0+
+                       +Serious_illness_injury_assault_to_yourself
+                     +Serious_illness_injury_assault_of_close_relative
+                     +Had_endometriosis
+                     + Diagnosed_infertility
+                     +Death_of_spouse_or_partner
+                     +Death_of_close_relative
+                     +Financial_difficulties
+                     +Marital_separation_divorce
+                     +Seen.doctor..GP..for.nerves..anxiety..tension.or.depression...Instance.0
+                     +Diabetes.diagnosed.by.doctor...Instance.0
+                     +High_blood_pressure
+                     +Angina
+                     +Heart_attack
+                     +Stroke
+                     +Back_pain
+                     +Hip_pain
+                     +Knee_pain
+                     +Headache
+                     +Neck_or_shoulder_pain
+                     +Stomach_or_abdominal_pain
+                     +Facial_pain
+                     +Pain_all_over_body
+                     +Irritability...Instance.0
+                     +Miserableness...Instance.0
+                     +Sensitivity...hurt.feelings...Instance.0
+                     +Fed.up.feelings...Instance.0
+                     +Nervous.feelings...Instance.0
+                     +Worrier...anxious.feelings...Instance.0
+                     +Tense....highly.strung....Instance.0
+                     +Loneliness..isolation...Instance.0
+                     , data =fullcog_meno, family = binomial)
+
+# View the regression summary
+summary(lm_memory)
+
+
+tbl_regression(lm_memory, exponentiate = TRUE)
 
 
 write.csv(fullcog_meno, "fullcog_meno.csv")
