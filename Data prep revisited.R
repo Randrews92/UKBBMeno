@@ -9,8 +9,14 @@ library(tidyverse)
 # Loading libraries
 install.packages('car')
 library(car) # For Anova and repeated measures functions
-
-
+# Load necessary libraries
+install.packages('afex')
+install.packages('emmeans')
+library(afex) # for mixed ANOVA
+library(emmeans) # for post-hoc and extracting SD_within
+# Load necessary libraries
+install.packages("mediation")
+library(mediation)
 
 #To Do:
 # Comorbidities (physical, reproductive, sleep, psychiatric and cognitive).
@@ -1081,12 +1087,6 @@ cog_tests<- read.csv("cog_tests_reg.csv")
 
 head(cog_tests)
 
-# Load necessary libraries
-install.packages('afex')
-install.packages('emmeans')
-library(afex) # for mixed ANOVA
-library(emmeans) # for post-hoc and extracting SD_within
-
 cat(colnames(cog_tests), sep = "\n")
 
 # Step 1: Standardize column names (remove duplicate Instance parts)
@@ -1430,13 +1430,13 @@ cat(apply(na_counts, 1, paste, collapse = ": "), sep = "\n")
 
 cat(colnames(fullcog_meno), sep = "\n")
 
-fullcog_meno$Significant_Decline_Processing_R <- as.factor(fullcog_meno$Significant_Decline_Processing_R)
+fullcog_meno$Significant_Decline_Processing<- as.factor(fullcog_meno$Significant_Decline_Processing)
 fullcog_meno%>%
   group_by(Hearing.difficulty.problems...Instance.0)%>%
   summarise(count=n_distinct(Participant.ID))
 
-lm_processing <- glm(Significant_Decline_Processing_R ~ Transition_to_meno+
-                   Had.menopause...Instance.0.y
+lm_processing <- glm(Significant_Decline_Processing ~ Transition_to_meno+
+                       Menopausal_Status_Instance_0+
                  +Age.when.attended.assessment.centre...Instance.0+
                    Mean.time.to.correctly.identify.matches...Instance.0+
                    Ethnicity+
@@ -1494,10 +1494,10 @@ lm_processing <- glm(Significant_Decline_Processing_R ~ Transition_to_meno+
 # View the regression summary
 summary(lm_processing)
 
-fullcog_meno$Significant_Decline_Visual_Memory_R <- as.factor(fullcog_meno$Significant_Decline_Visual_Memory_R)
+fullcog_meno$Significant_Decline_Visual_Memory <- as.factor(fullcog_meno$Significant_Decline_Visual_Memory_R)
 
-lm_memory <- glm(Significant_Decline_Visual_Memory_R ~ Transition_to_meno+
-                       Had.menopause...Instance.0.y
+lm_memory <- glm(Significant_Decline_Visual_Memory ~ Transition_to_meno+
+                       Menopausal_Status_Instance_0+
                      +Age.when.attended.assessment.centre...Instance.0+
                        Pairs_Score_Instance.0+
                        Ethnicity+
@@ -1557,19 +1557,273 @@ summary(lm_memory)
 
 
 tbl_regression(lm_memory, exponentiate = TRUE)
+tbl_regression(lm_processing, exponentiate = TRUE)
 
+### In BOTH cases going through menopause transition increased risks of signfiant decline.
 
 write.csv(fullcog_meno, "fullcog_meno.csv")
 
+fullcog_meno <- read.csv("fullcog_meno.csv")
+
 # Now let's see whether cognitive decline is associated with dementia outcomes in those who transtioned
 
-# Create binary dementia column (include death reason in there)
-# Create age at dementia column 
+na_counts <- data.frame(Column = names(fullcog_meno), 
+                        NA_Count = colSums(is.na(fullcog_meno)))
 
-# Create age at death column
+cat(apply(na_counts, 1, paste, collapse = ": "), sep = "\n")
+
+cat(colnames(fullcog_meno), sep = "\n")
+
+levels(fullcog_meno$Menopausal_Status_Instance_0)
+fullcog_meno$Menopausal_Status_Instance_0 <- as.factor(fullcog_meno$Menopausal_Status_Instance_0)
+T <- unique(fullcog_meno$Description.of.cause.of.death...Instance.0)
+print(T)
+# Create binary dementia column (include death reason in there)
+
+fullcog_meno <- fullcog_meno %>%
+  mutate(Dementia_Diagnosis = if_else(!is.na(Date.of.all.cause.dementia.report), "Yes", "No"))
+
+fullcog_meno%>%
+  group_by(Dementia_Diagnosis)%>%
+  summarise(count=n_distinct(Participant.ID))
+
+# Explicitly specify dplyr::select to avoid conflicts
+mean_time_cols <- dplyr::select(fullcog_meno, dplyr::starts_with("Mean.time.to.correctly.identify.matches"))
+pairs_score_cols <- dplyr::select(fullcog_meno, dplyr::starts_with("Pairs_Score_Instance"))
+
+# Calculate average scores for each participant across available instances
+fullcog_meno <- fullcog_meno %>%
+  mutate(
+    Avg_Mean_Time = rowMeans(mean_time_cols, na.rm = TRUE),
+    Avg_Pairs_Score = rowMeans(pairs_score_cols, na.rm = TRUE)
+  )
+
+
+# Assuming Significant_Decline_Processing, Significant_Decline_Memory, 
+# Menopause_Transition, and Dementia_Diagnosis are variables in your dataset.
+
+fullcog_meno$Transition_to_meno <- as.factor(fullcog_meno$Transition_to_meno)
+fullcog_meno$Dementia_Diagnosis <- as.factor(fullcog_meno$Dementia_Diagnosis)
+
+# Step 1: Model the effect of cognitive decline on menopause transition (mediator)
+model_a <- glm(Transition_to_meno ~
+                 Avg_Mean_Time +
+                 Age.when.attended.assessment.centre...Instance.0 +
+                 APOE4 +
+                 Ethnicity +
+                 DietScore +
+                 Townsend.deprivation.index.at.recruitment +
+                 Ever.smoked...Instance.0 +
+                 Alcohol.drinker.status...Instance.0 +
+                 merged_BMI_column +
+                 Long.standing.illness..disability.or.infirmity...Instance.0 +
+                 Serious_illness_injury_assault_to_yourself +
+                 Serious_illness_injury_assault_of_close_relative +
+                 Death_of_spouse_or_partner +
+                 Death_of_close_relative +
+                 Financial_difficulties +
+                 Marital_separation_divorce +
+                 Seen.doctor..GP..for.nerves..anxiety..tension.or.depression...Instance.0 +
+                 Diabetes.diagnosed.by.doctor...Instance.0 +
+                 High_blood_pressure +
+                 Angina +
+                 Heart_attack +
+                 Stroke,
+               data = fullcog_meno, family = binomial)
+
+summary(model_a)
+
+# Step 2: Model the effect of cognitive decline and menopause transition on dementia diagnosis
+model_b <- glm(Dementia_Diagnosis ~ 
+                 Avg_Mean_Time + 
+                 Transition_to_meno + 
+                 Age.when.attended.assessment.centre...Instance.0 + 
+                 APOE4 + 
+                 Ethnicity + 
+                 DietScore + 
+                 Townsend.deprivation.index.at.recruitment + 
+                 Ever.smoked...Instance.0 + 
+                 Alcohol.drinker.status...Instance.0 + 
+                 merged_BMI_column + 
+                 Long.standing.illness..disability.or.infirmity...Instance.0 + 
+                 Serious_illness_injury_assault_to_yourself + 
+                 Serious_illness_injury_assault_of_close_relative + 
+                 Death_of_spouse_or_partner + 
+                 Death_of_close_relative + 
+                 Financial_difficulties + 
+                 Marital_separation_divorce + 
+                 Seen.doctor..GP..for.nerves..anxiety..tension.or.depression...Instance.0 + 
+                 Diabetes.diagnosed.by.doctor...Instance.0 + 
+                 High_blood_pressure + 
+                 Angina + 
+                 Heart_attack + 
+                 Stroke + 
+                 Avg_Mean_Time:Menopause_Status_Instance_0, 
+               data = fullcog_meno, family = binomial)
+
+summary(model_b)
+
+# Step 3: Mediation analysis
+mediation_result <- mediate(model_a, model_b, treat = "Avg_Mean_Time",
+                            mediator = "Transition_to_meno", boot = TRUE, sims = 1000)
+
+summary(mediation_result)  # Check direct, indirect, and total effects
+
+
+write.csv(fullcog_meno,"fullcog_meno.csv")
+
+# Lets try seeing if changes in cognition at different stages of menopause can predict dementia. 
+
+
+fullcog_meno <- fullcog_meno %>%
+  # Calculate average Mean.time for each participant and Menopausal Status level
+  mutate(
+    Avg_Mean_time_Not_Sure = ifelse(Menopausal_Status_Instance_0 == "Not Sure", 
+                                    rowMeans(dplyr::select(., starts_with("Mean.time.to.correctly.identify.matches")), na.rm = TRUE), NA_real_),
+    Avg_Mean_time_Perimenopausal = ifelse(Menopausal_Status_Instance_0 == "Perimenopausal", 
+                                          rowMeans(dplyr::select(., starts_with("Mean.time.to.correctly.identify.matches")), na.rm = TRUE), NA_real_),
+    Avg_Mean_time_Postmenopausal = ifelse(Menopausal_Status_Instance_0 == "Postmenopausal", 
+                                          rowMeans(dplyr::select(., starts_with("Mean.time.to.correctly.identify.matches")), na.rm = TRUE), NA_real_),
+    Avg_Mean_time_Premenopausal = ifelse(Menopausal_Status_Instance_0 == "Premenopausal", 
+                                         rowMeans(dplyr::select(., starts_with("Mean.time.to.correctly.identify.matches")), na.rm = TRUE), NA_real_),
+    Avg_Mean_time_Surgical_Menopause = ifelse(Menopausal_Status_Instance_0 == "Surgical menopause", 
+                                              rowMeans(dplyr::select(., starts_with("Mean.time.to.correctly.identify.matches")), na.rm = TRUE), NA_real_),
+    
+    # Calculate average Pairs_Score for each participant and Menopausal Status level
+    Avg_Pairs_Score_Not_Sure = ifelse(Menopausal_Status_Instance_0 == "Not Sure", 
+                                      rowMeans(dplyr::select(., starts_with("Pairs_Score_Instance")), na.rm = TRUE), NA_real_),
+    Avg_Pairs_Score_Perimenopausal = ifelse(Menopausal_Status_Instance_0 == "Perimenopausal", 
+                                            rowMeans(dplyr::select(., starts_with("Pairs_Score_Instance")), na.rm = TRUE), NA_real_),
+    Avg_Pairs_Score_Postmenopausal = ifelse(Menopausal_Status_Instance_0 == "Postmenopausal", 
+                                            rowMeans(dplyr::select(., starts_with("Pairs_Score_Instance")), na.rm = TRUE), NA_real_),
+    Avg_Pairs_Score_Premenopausal = ifelse(Menopausal_Status_Instance_0 == "Premenopausal", 
+                                           rowMeans(dplyr::select(., starts_with("Pairs_Score_Instance")), na.rm = TRUE), NA_real_),
+    Avg_Pairs_Score_Surgical_Menopause = ifelse(Menopausal_Status_Instance_0 == "Surgical menopause", 
+                                                rowMeans(dplyr::select(., starts_with("Pairs_Score_Instance")), na.rm = TRUE), NA_real_)
+  )
+
+
+
+# View the updated dataset with new columns
+head(fullcog_meno)
+
+levels(fullcog_meno$Menopausal_Status_Instance_0)
+
+filtered_meno_transition <- fullcog_meno %>%
+  filter(Transition_to_meno == 'Y' | !grepl('Not Sure|Premenopausal', Menopausal_Status_Instance_0))
+
+
+filtered_peri$Avg_Mean_time_Perimenopausal <- round(filtered_peri$Avg_Mean_time_Perimenopausal)
+
+
+table(filtered_peri$Avg_Mean_time_Perimenopausal, filtered_peri$Dementia_Diagnosis)
+
+# Step 2: Model the effect of cognitive decline and menopause transition on dementia diagnosis
+model_b <- glm(Dementia_Diagnosis ~ 
+                 #Menopausal_Status_Instance_0*Transition_to_meno+
+                 Transition_to_meno*Avg_Mean_Time+
+                 #Transition_to_meno*Avg_Pairs_Score+
+                 APOE4 + 
+                 Ethnicity + 
+                 DietScore + 
+                 Townsend.deprivation.index.at.recruitment + 
+                 Ever.smoked...Instance.0 + 
+                 Alcohol.drinker.status...Instance.0 + 
+                 merged_BMI_column + 
+                 Long.standing.illness..disability.or.infirmity...Instance.0 + 
+                 Serious_illness_injury_assault_to_yourself + 
+                 Serious_illness_injury_assault_of_close_relative + 
+                 Death_of_spouse_or_partner + 
+                 Death_of_close_relative + 
+                 Financial_difficulties + 
+                 Marital_separation_divorce + 
+                 Hearing.difficulty.problems...Instance.0+
+                 Seen.doctor..GP..for.nerves..anxiety..tension.or.depression...Instance.0 + 
+                 Diabetes.diagnosed.by.doctor...Instance.0 + 
+                 High_blood_pressure + 
+                 Angina + 
+                 Heart_attack + 
+                 Stroke
+                 +Back_pain
+               +Hip_pain
+               +Knee_pain
+               +Headache
+               +Neck_or_shoulder_pain
+               +Stomach_or_abdominal_pain
+               +Facial_pain
+               +Pain_all_over_body
+               +Irritability...Instance.0
+               +Miserableness...Instance.0
+               +Sensitivity...hurt.feelings...Instance.0
+               +Fed.up.feelings...Instance.0
+               +Nervous.feelings...Instance.0
+               +Worrier...anxious.feelings...Instance.0
+               +Tense....highly.strung....Instance.0
+               +Loneliness..isolation...Instance.0+
+                 Qualifications, 
+               data =filtered_meno_transition, family = binomial)
+
+
+
+model_b <- glm(Dementia_Diagnosis ~ 
+                 Menopausal_Status_Instance_0*Avg_Mean_Time+
+                 #Had.menopause...Instance.0.y*Avg_Mean_Time+
+                 Transition_to_meno*Avg_Mean_Time+
+                 #Transition_to_meno*Avg_Pairs_Score+
+                 APOE4 + 
+                 Ethnicity + 
+                 DietScore + 
+                 Townsend.deprivation.index.at.recruitment + 
+                 Ever.smoked...Instance.0 + 
+                 Alcohol.drinker.status...Instance.0 + 
+                 merged_BMI_column + 
+                 Long.standing.illness..disability.or.infirmity...Instance.0 + 
+                 Serious_illness_injury_assault_to_yourself + 
+                 Serious_illness_injury_assault_of_close_relative + 
+                 Death_of_spouse_or_partner + 
+                 Death_of_close_relative + 
+                 Financial_difficulties + 
+                 Marital_separation_divorce + 
+                 Hearing.difficulty.problems...Instance.0+
+                 Seen.doctor..GP..for.nerves..anxiety..tension.or.depression...Instance.0 + 
+                 Diabetes.diagnosed.by.doctor...Instance.0 + 
+                 High_blood_pressure + 
+                 Angina + 
+                 Heart_attack + 
+                 Stroke
+               +Back_pain
+               +Hip_pain
+               +Knee_pain
+               +Headache
+               +Neck_or_shoulder_pain
+               +Stomach_or_abdominal_pain
+               +Facial_pain
+               +Pain_all_over_body
+               +Irritability...Instance.0
+               +Miserableness...Instance.0
+               +Sensitivity...hurt.feelings...Instance.0
+               +Fed.up.feelings...Instance.0
+               +Nervous.feelings...Instance.0
+               +Worrier...anxious.feelings...Instance.0
+               +Tense....highly.strung....Instance.0
+               +Loneliness..isolation...Instance.0+
+                 Qualifications, 
+               data =filtered_meno_transition, family = binomial)
 
 
 # Create date of event (dementia first, then death, or last update in UKBB-2023-01-01)
+summary(model_b)
+
+exp(coef(model_b)["Transition_to_menoY"])
+
+vif(model_b)
+
+tbl_regression(model_b, exponentiate = TRUE)
+
+
+
+
+
 
 # Create age at event from date of event
 
@@ -1579,5 +1833,10 @@ write.csv(fullcog_meno, "fullcog_meno.csv")
 
 # Fill in NAs in LOE using age at assessment-age at menarche (????)
 
-# Fill in blanks in using age at assessment in the NA values 
+
+  class(fullcog_meno$Avg_Mean_time_Perimenopausal)
+  Avg_Mean_time_Not_Sure+
+  Avg_Mean_time_Postmenopausal+
+  Avg_Mean_time_Premenopausal+
+  Avg_Mean_time_Surgical_Menopause+
 
