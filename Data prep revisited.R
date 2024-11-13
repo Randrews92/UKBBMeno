@@ -1672,6 +1672,8 @@ summary(mediation_result)  # Check direct, indirect, and total effects
 
 write.csv(fullcog_meno,"fullcog_meno.csv")
 
+fullcog_meno <- read.csv("fullcog_meno.csv")
+
 # Lets try seeing if changes in cognition at different stages of menopause can predict dementia. 
 
 
@@ -1709,27 +1711,185 @@ head(fullcog_meno)
 
 levels(fullcog_meno$Menopausal_Status_Instance_0)
 
+
+fullcog_meno <- fullcog_meno %>%
+  mutate(Surgical_Menopause_YN = if_else(if_any(starts_with("Menopausal_Status_Instance"), 
+                                                ~ . == "Surgical menopause"), 
+                                         "Y", "N"))
+
+
+fullcog_meno <- fullcog_meno %>%
+  mutate(
+    Min_Age_at_Menopause = dplyr::select(., starts_with("Age.at.menopause..last.menstrual.period....Instance")) %>%
+      mutate(across(everything(), ~ as.numeric(na_if(na_if(., "Do not know"), "Prefer not to answer")))) %>%
+      apply(1, function(x) if(all(is.na(x))) NA else min(x, na.rm = TRUE))
+  )
+
+
+repro <- read.csv("Women_reproductive_participant.csv")
+unique(fullcog_meno$Age.at.menarche.num)
+
+r <- fullcog_meno%>%
+  group_by(Min_Age_at_Menopause)%>%
+  summarise(count=n_distinct(Participant.ID))
+
+# Ensure correct column names and perform the join
+fullcog_meno <- fullcog_meno %>%
+  left_join(
+    dplyr::select(repro, Participant.ID, Age.when.periods.started..menarche....Instance.0), 
+    by = "Participant.ID"
+  )
+
+fullcog_meno <- fullcog_meno %>%
+  mutate(
+    Min_Age_at_Menarche = as.numeric(na_if(na_if(Age.when.periods.started..menarche....Instance.0, 
+                                                 "Do not know"), 
+                                           "Prefer not to answer"))
+  )
+
+r <- fullcog_meno%>%
+  group_by(LOE)%>%
+  summarise(count=n_distinct(Participant.ID))
+
+
+fullcog_meno$LOE <- fullcog_meno$Min_Age_at_Menopause-fullcog_meno$Min_Age_at_Menarche
+
+fullcog_meno$Early_meno <- fullcog_meno$Min_Age_at_Menopause-fullcog_meno$Min_Age_at_Menarche
+
+
+filtered_meno_transition <- fullcog_meno %>%
+  filter(Transition_to_meno == 'Y' | !grepl('Not Sure|Premenopausal', Menopausal_Status_Instance_0))
+
+r <- filtered_meno_transition%>%
+  group_by(LOE)%>%
+  summarise(count=n_distinct(Participant.ID))
+
+# get age at bilat in meno age column, recalc LOE
+
+unique(fullcog_meno$Sleep_duration_num)
+fullcog_meno <- fullcog_meno %>%
+  mutate(
+    Sleep_duration_num = as.numeric(na_if(na_if(Sleep.duration...Instance.0, 
+                                                 "Do not know"), 
+                                           "Prefer not to answer")))
+
+head(filtered_meno_transition)
+
+#### get supplements in there 
+
+supps <- read.csv("Women_supplements_participant.csv")
+
+
+unique(supps$Vitamin.and.mineral.supplements...Instance.0)
+
+unique(supps$Vitamin.supplements..pilot....Instance.0)
+
+unique(supps$Mineral.and.other.dietary.supplements...Instance.0)
+
+unique(supps$Vitamin.and.mineral.supplements..pilot....Instance.0)
+
+# Define a function to merge pilot and non-pilot columns by combining unique values
+merge_columns <- function(df, col_main, col_pilot) {
+  # Apply across each row, splitting values by '|' and removing duplicates
+  combined_values <- apply(df[, c(col_main, col_pilot)], 1, function(row) {
+    # Split values by '|' and flatten to unique set
+    combined <- unique(unlist(strsplit(paste(row, collapse = "|"), split = "\\|")))
+    # Remove any empty strings and collapse back with '|'
+    paste(combined[combined != ""], collapse = "|")
+  })
+  # Return the combined column as a new vector
+  return(combined_values)
+}
+
+# Applying the function for each column pair
+supps$Combined_Mineral_Supplements <- merge_columns(supps, 
+                                                            "Mineral.and.other.dietary.supplements...Instance.0",
+                                                            "Vitamin.and.mineral.supplements..pilot....Instance.0")
+
+supps$Combined_Vitamin_Supplements <- merge_columns(supps,
+                                                    "Vitamin.and.mineral.supplements...Instance.0",
+                                                    "Vitamin.supplements..pilot....Instance.0")
+
+supps$Fish_oil_combined <- ifelse(
+  supps$`Fish oil (including cod liver oil` == "Y" | supps$`Fish oil (including cod liver oil)` == "Y",
+  "Y",
+  "N"
+)
+# Ensure correct column names and perform the join
+
+cat(colnames(supps), sep = "\n")
+
+fullcog_meno <- fullcog_meno %>%
+  left_join(
+    dplyr::select(supps,Participant.ID,
+                            Fish_oil_combined,
+                            Glucosamine,
+                  `Folic acid or Folate (Vit B9)`,
+                  `Multivitamins +/- minerals`,
+                            Iron,
+                            Calcium,
+                  `Vitamin E`,
+                  `Vitamin C`,
+                  `Evening primrose oil`,
+                  `Vitamin B`,
+                  `Vitamin D`,
+                  `Vitamin A`,
+                  `Zinc`,
+                            Selenium,
+                            Garlic,
+                            Ginkgo), 
+    by = "Participant.ID"
+  )
+
+
+# Get unique supplements from both columns
+unique_supplements <- unique(unlist(strsplit(paste(supps$Combined_Mineral_Supplements, supps$Combined_Vitamin_Supplements, sep = "|"), "\\|")))
+
+# Remove any leading/trailing whitespace
+unique_supplements <- trimws(unique_supplements)
+
+# Now create a new binary column for each unique supplement
+for (supp in unique_supplements) {
+  # Create a binary Y/N column based on whether each supplement is present in Combined_Mineral_Supplements or Combined_Vitamin_Supplements
+  supps[[supp]] <- ifelse(
+    grepl(supp, supps$Combined_Mineral_Supplements, fixed = TRUE) | grepl(supp, supps$Combined_Vitamin_Supplements, fixed = TRUE),
+    "Y",
+    "N"
+  )
+}
+
+# View the updated dataset with new binary columns
+head(supps)
+
+# View the updated dataframe with combined columns
+head(supps)
+
 filtered_meno_transition <- fullcog_meno %>%
   filter(Transition_to_meno == 'Y' | !grepl('Not Sure|Premenopausal', Menopausal_Status_Instance_0))
 
 
-filtered_peri$Avg_Mean_time_Perimenopausal <- round(filtered_peri$Avg_Mean_time_Perimenopausal)
-
-
-table(filtered_peri$Avg_Mean_time_Perimenopausal, filtered_peri$Dementia_Diagnosis)
-
 # Step 2: Model the effect of cognitive decline and menopause transition on dementia diagnosis
 model_b <- glm(Dementia_Diagnosis ~ 
-                 #Menopausal_Status_Instance_0*Transition_to_meno+
-                 Transition_to_meno*Avg_Mean_Time+
-                 #Transition_to_meno*Avg_Pairs_Score+
+                 Avg_Mean_Time+
+                 Avg_Pairs_Score+
+                 Surgical_Menopause_YN+
+                 Yrs_OC+
+                 Yrs_HRT+
+                 Diagnosed_infertility+
+                 Had_endometriosis+
+                 Age.when.attended.assessment.centre...Instance.0+
+                 LOE+
+                 Number.of.live.births...Instance.0+
                  APOE4 + 
                  Ethnicity + 
                  DietScore + 
                  Townsend.deprivation.index.at.recruitment + 
                  Ever.smoked...Instance.0 + 
                  Alcohol.drinker.status...Instance.0 + 
-                 merged_BMI_column + 
+                 merged_BMI_column+ 
+                 Frequency.of.tiredness...lethargy.in.last.2.weeks...Instance.0+
+                 Frequency.of.depressed.mood.in.last.2.weeks...Instance.0+
+                 Sleep_duration_num+
                  Long.standing.illness..disability.or.infirmity...Instance.0 + 
                  Serious_illness_injury_assault_to_yourself + 
                  Serious_illness_injury_assault_of_close_relative + 
@@ -1760,67 +1920,55 @@ model_b <- glm(Dementia_Diagnosis ~
                +Worrier...anxious.feelings...Instance.0
                +Tense....highly.strung....Instance.0
                +Loneliness..isolation...Instance.0+
-                 Qualifications, 
+                 Qualifications+ 
+               Fish_oil_combined+
+                 Zinc+
+                 Selenium+
+                 #Garlic,
+                 #Ginkgo+
+                 Iron+
+                 Calcium+
+                 Glucosamine+
+                 `Folic acid or Folate (Vit B9)`+
+                 `Multivitamins +/- minerals`+
+                 Iron+
+                 Calcium+
+                 `Vitamin E`+
+                 `Vitamin C`+
+                 #`Evening primrose oil`+
+                 `Vitamin B`+
+                 `Vitamin D`+
+                 `Vitamin A`,
                data =filtered_meno_transition, family = binomial)
 
-
-
-model_b <- glm(Dementia_Diagnosis ~ 
-                 Menopausal_Status_Instance_0*Avg_Mean_Time+
-                 #Had.menopause...Instance.0.y*Avg_Mean_Time+
-                 Transition_to_meno*Avg_Mean_Time+
-                 #Transition_to_meno*Avg_Pairs_Score+
-                 APOE4 + 
-                 Ethnicity + 
-                 DietScore + 
-                 Townsend.deprivation.index.at.recruitment + 
-                 Ever.smoked...Instance.0 + 
-                 Alcohol.drinker.status...Instance.0 + 
-                 merged_BMI_column + 
-                 Long.standing.illness..disability.or.infirmity...Instance.0 + 
-                 Serious_illness_injury_assault_to_yourself + 
-                 Serious_illness_injury_assault_of_close_relative + 
-                 Death_of_spouse_or_partner + 
-                 Death_of_close_relative + 
-                 Financial_difficulties + 
-                 Marital_separation_divorce + 
-                 Hearing.difficulty.problems...Instance.0+
-                 Seen.doctor..GP..for.nerves..anxiety..tension.or.depression...Instance.0 + 
-                 Diabetes.diagnosed.by.doctor...Instance.0 + 
-                 High_blood_pressure + 
-                 Angina + 
-                 Heart_attack + 
-                 Stroke
-               +Back_pain
-               +Hip_pain
-               +Knee_pain
-               +Headache
-               +Neck_or_shoulder_pain
-               +Stomach_or_abdominal_pain
-               +Facial_pain
-               +Pain_all_over_body
-               +Irritability...Instance.0
-               +Miserableness...Instance.0
-               +Sensitivity...hurt.feelings...Instance.0
-               +Fed.up.feelings...Instance.0
-               +Nervous.feelings...Instance.0
-               +Worrier...anxious.feelings...Instance.0
-               +Tense....highly.strung....Instance.0
-               +Loneliness..isolation...Instance.0+
-                 Qualifications, 
-               data =filtered_meno_transition, family = binomial)
-
++
+  Glucosamine+
+  `Folic acid or Folate (Vit B9)`+
+  `Multivitamins +/- minerals`+
+  Iron+
+  Calcium+
+  `Vitamin E`+
+  `Vitamin C`+
+  `Evening primrose oil`+
+  `Vitamin B`+
+  `Vitamin D`+
+  `Vitamin A`+
+  Zinc+
+  Selenium+
+  Garlic+
+  Ginkgo
+`Evening primrose oil`+
 
 # Create date of event (dementia first, then death, or last update in UKBB-2023-01-01)
 summary(model_b)
 
-exp(coef(model_b)["Transition_to_menoY"])
+exp(coef(model_b)["LOE"])
 
 vif(model_b)
 
 tbl_regression(model_b, exponentiate = TRUE)
 
-
+write.csv(fullcog_meno,"fullcog_meno.csv")
 
 
 
