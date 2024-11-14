@@ -1431,12 +1431,14 @@ cat(apply(na_counts, 1, paste, collapse = ": "), sep = "\n")
 cat(colnames(fullcog_meno), sep = "\n")
 
 fullcog_meno$Significant_Decline_Processing<- as.factor(fullcog_meno$Significant_Decline_Processing)
+fullcog_meno$Significant_Decline_Processing_R<- as.factor(fullcog_meno$Significant_Decline_Processing_R)
 fullcog_meno%>%
   group_by(Hearing.difficulty.problems...Instance.0)%>%
   summarise(count=n_distinct(Participant.ID))
 
-lm_processing <- glm(Significant_Decline_Processing ~ Transition_to_meno+
+lm_processing <- glm(Significant_Decline_Processing_R ~ Transition_to_meno+
                        Menopausal_Status_Instance_0+
+                       Sleep_duration_num+
                  +Age.when.attended.assessment.centre...Instance.0+
                    Mean.time.to.correctly.identify.matches...Instance.0+
                    Ethnicity+
@@ -1444,21 +1446,13 @@ lm_processing <- glm(Significant_Decline_Processing ~ Transition_to_meno+
                    Townsend.deprivation.index.at.recruitment+
                    Ever.smoked...Instance.0+
                    Alcohol.drinker.status...Instance.0+
-                   Weight.change.compared.with.1.year.ago...Instance.0+
+                  # Weight.change.compared.with.1.year.ago...Instance.0+
                    merged_BMI_column+
                    APOE4+
                    Number.of.live.births...Instance.0+
-                   Sleeplessness...insomnia...Instance.0+
-                   Morning.evening.person..chronotype....Instance.0+
-                 Getting.up.in.morning...Instance.0+
-                   Frequency.of.depressed.mood.in.last.2.weeks...Instance.0
-                 +Frequency.of.tiredness...lethargy.in.last.2.weeks...Instance.0+
-                   Hearing.difficulty.problems...Instance.0+
-                   Disability.benefits+
-                   Overall.health.rating...Instance.0+
                    Yrs_OC+ 
                    Yrs_HRT+
-                   Long.standing.illness..disability.or.infirmity...Instance.0+
+                   #Number.of.treatments.medications.taken...Instance.0+
                    +Serious_illness_injury_assault_to_yourself
                  +Serious_illness_injury_assault_of_close_relative
                  +Had_endometriosis
@@ -1471,32 +1465,186 @@ lm_processing <- glm(Significant_Decline_Processing ~ Transition_to_meno+
                  +Diabetes.diagnosed.by.doctor...Instance.0
                  +High_blood_pressure
                  +Angina
-                 +Heart_attack
-                 +Stroke
-                 +Back_pain
-                 +Hip_pain
-                 +Knee_pain
-                 +Headache
-                 +Neck_or_shoulder_pain
-                 +Stomach_or_abdominal_pain
-                 +Facial_pain
-                 +Pain_all_over_body
-                 +Irritability...Instance.0
-                +Miserableness...Instance.0
-                +Sensitivity...hurt.feelings...Instance.0
-                +Fed.up.feelings...Instance.0
-                +Nervous.feelings...Instance.0
-                +Worrier...anxious.feelings...Instance.0
-                +Tense....highly.strung....Instance.0
-                +Loneliness..isolation...Instance.0
-                   , data =fullcog_meno, family = binomial)
+                 +Heart_attack+
+                Fish_oil_combined+
+                  Folic.acid.or.Folate..Vit.B9.+
+                  Multivitamins.....minerals+
+                  Vitamin.B
+                   , data =fullcog_meno, family = binomial) 
+
+
+summary(lm_processing)
+
+tbl_regression(lm_processing, exponentiate = TRUE)
+
+#Avg_Mean_Time
+
+# Get long data:
+
+fullcog <- fullcog_meno %>%
+  dplyr::select(Participant.ID,
+         Townsend.deprivation.index.at.recruitment,
+         Age.when.attended.assessment.centre...Instance.0,
+         Ever.smoked...Instance.0,
+         Alcohol.drinker.status...Instance.0,
+         merged_BMI_column,
+         DietScore,
+         Qualifications,
+         Ethnicity,
+         Disability.benefits,
+         APOE4,
+         Number.of.live.births...Instance.0,
+         Number.of.stillbirths...Instance.0,
+         Yrs_HRT,
+         Yrs_OC,
+         Had_endometriosis,
+         Diagnosed_infertility,
+         Seen.doctor..GP..for.nerves..anxiety..tension.or.depression...Instance.0,
+         Serious_illness_injury_assault_to_yourself,
+         Serious_illness_injury_assault_of_close_relative,
+         Death_of_spouse_or_partner,
+         Death_of_close_relative,
+         Financial_difficulties,
+         Marital_separation_divorce,
+         Long.standing.illness..disability.or.infirmity...Instance.0,
+         Weight.change.compared.with.1.year.ago...Instance.0,
+         Number.of.treatments.medications.taken...Instance.0,
+         Diabetes.diagnosed.by.doctor...Instance.0,
+         High_blood_pressure,
+         Angina,
+         Heart_attack,
+         Stroke,
+         Sleep_duration_num,
+         Fish_oil_combined,
+         Glucosamine,
+         Folic.acid.or.Folate..Vit.B9.,
+         Multivitamins.....minerals,
+         Iron,
+         Calcium,
+         Vitamin.E,
+         Vitamin.C,
+         Vitamin.B,
+         Vitamin.D,
+         Vitamin.A,
+         Zinc,
+         Selenium,
+         Min_Age_at_Menopause,
+         Min_Age_at_Menarche,
+         LOE,
+         Menopausal_Status_Instance_0,
+         Menopausal_Status_Instance_1,
+         Menopausal_Status_Instance_2,
+         Menopausal_Status_Instance_3,
+         Transition_to_meno,
+         Within_5_Years_of_Menopause,
+         Mean.time.to.correctly.identify.matches...Instance.0,
+         Mean.time.to.correctly.identify.matches...Instance.1,
+         Mean.time.to.correctly.identify.matches...Instance.2,
+         Mean.time.to.correctly.identify.matches...Instance.3,
+         Pairs_Score_Instance.0,
+         Pairs_Score_Instance.1,
+         Pairs_Score_Instance.2,
+         Pairs_Score_Instance.3
+         )
+
+
+fullcog_long <- fullcog %>%
+  pivot_longer(cols = matches("Instance"),  # Only pivot columns with 'Instance' in their name
+               names_to = c(".value", "Instance"),  # Split the variable names into .value and Instance
+               names_pattern = "(.*)[_.]Instance[_.](\\d+)$") %>%
+  mutate(Instance = factor(Instance, levels = c(0, 1, 2, 3)))  # Ensure that Instance is ordered correctly
+
+write.csv(fullcog_long,"fullcog_long.csv")
+
+head(fullcog_long)
+
+vif(lm_processing)
+
+lm_processing <- lmer(Mean.time.to.correctly.identify.matches.. ~ 
+                        #Transition_to_meno+
+                       Within_5_Years_of_Menopause+
+                       #Menopausal_Status+
+                       +Age.when.attended.assessment.centre..+
+                       Ethnicity+
+                       DietScore+
+                       Townsend.deprivation.index.at.recruitment+
+                       Ever.smoked..+
+                       Alcohol.drinker.status..+
+                       Weight.change.compared.with.1.year.ago..+
+                       merged_BMI_column+
+                       APOE4+
+                       Number.of.live.births..+
+                       #Sleeplessness...insomnia...Instance.0+
+                       #Morning.evening.person..chronotype....Instance.0+
+                       #Getting.up.in.morning...Instance.0+
+                       #Frequency.of.depressed.mood.in.last.2.weeks...Instance.0
+                     #+Frequency.of.tiredness...lethargy.in.last.2.weeks...Instance.0+
+                       #Hearing.difficulty.problems...Instance.0+
+                       #Disability.benefits+
+                       #Overall.health.rating...Instance.0+
+                       Yrs_OC+ 
+                       Yrs_HRT+
+                       Number.of.treatments.medications.taken..+
+                       +Serious_illness_injury_assault_to_yourself
+                     +Serious_illness_injury_assault_of_close_relative
+                     +Had_endometriosis
+                     + Diagnosed_infertility
+                     +Death_of_spouse_or_partner
+                     +Death_of_close_relative
+                     +Financial_difficulties
+                     +Marital_separation_divorce
+                     +Seen.doctor..GP..for.nerves..anxiety..tension.or.depression..
+                     +Diabetes.diagnosed.by.doctor..
+                     +High_blood_pressure
+                     +Angina
+                     +Heart_attack
+                     +Stroke
+                     +Sleep_duration_num+
+                     #+Back_pain
+                     #+Hip_pain
+                     #+Knee_pain
+                     #+Headache
+                     #+Neck_or_shoulder_pain
+                     #+Stomach_or_abdominal_pain
+                     #+Facial_pain
+                     #+Pain_all_over_body
+                     #+Irritability...Instance.0
+                     #+Miserableness...Instance.0
+                     #+Sensitivity...hurt.feelings...Instance.0
+                     #+Fed.up.feelings...Instance.0
+                     #+Nervous.feelings...Instance.0
+                     #+Worrier...anxious.feelings...Instance.0
+                     #+Tense....highly.strung....Instance.0
+                     #+Loneliness..isolation...Instance.0+
+                       Fish_oil_combined+
+                       #Zinc+
+                       #Selenium+
+                       #Garlic+
+                       #Ginkgo+
+                       #Iron+
+                       #Calcium+
+                       #Glucosamine+
+                       Folic.acid.or.Folate..Vit.B9.+
+                      Multivitamins.....minerals+
+                      # Iron+
+                       #Calcium+
+                       #Vitamin.E+
+                       #Vitamin.C+
+                       #Evening.primrose.oil+
+                       Vitamin.B+
+                       #Vitamin.D+
+                     #Vitamin.A
+                     +(1|Participant.ID)
+                     , data =fullcog_long) 
 
 # View the regression summary
 summary(lm_processing)
 
 fullcog_meno$Significant_Decline_Visual_Memory <- as.factor(fullcog_meno$Significant_Decline_Visual_Memory_R)
 
-lm_memory <- glm(Significant_Decline_Visual_Memory ~ Transition_to_meno+
+lm_memory <- glm(Significant_Decline_Visual_Memory ~ 
+                   #Transition_to_meno+
+                   #Within_5_Years_of_Menopause+
                        Menopausal_Status_Instance_0+
                      +Age.when.attended.assessment.centre...Instance.0+
                        Pairs_Score_Instance.0+
@@ -1558,6 +1706,7 @@ summary(lm_memory)
 
 tbl_regression(lm_memory, exponentiate = TRUE)
 tbl_regression(lm_processing, exponentiate = TRUE)
+tbl_regression(lm_processing)
 
 ### In BOTH cases going through menopause transition increased risks of signfiant decline.
 
@@ -1632,42 +1781,6 @@ model_a <- glm(Transition_to_meno ~
                data = fullcog_meno, family = binomial)
 
 summary(model_a)
-
-# Step 2: Model the effect of cognitive decline and menopause transition on dementia diagnosis
-model_b <- glm(Dementia_Diagnosis ~ 
-                 Avg_Mean_Time + 
-                 Transition_to_meno + 
-                 Age.when.attended.assessment.centre...Instance.0 + 
-                 APOE4 + 
-                 Ethnicity + 
-                 DietScore + 
-                 Townsend.deprivation.index.at.recruitment + 
-                 Ever.smoked...Instance.0 + 
-                 Alcohol.drinker.status...Instance.0 + 
-                 merged_BMI_column + 
-                 Long.standing.illness..disability.or.infirmity...Instance.0 + 
-                 Serious_illness_injury_assault_to_yourself + 
-                 Serious_illness_injury_assault_of_close_relative + 
-                 Death_of_spouse_or_partner + 
-                 Death_of_close_relative + 
-                 Financial_difficulties + 
-                 Marital_separation_divorce + 
-                 Seen.doctor..GP..for.nerves..anxiety..tension.or.depression...Instance.0 + 
-                 Diabetes.diagnosed.by.doctor...Instance.0 + 
-                 High_blood_pressure + 
-                 Angina + 
-                 Heart_attack + 
-                 Stroke + 
-                 Avg_Mean_Time:Menopause_Status_Instance_0, 
-               data = fullcog_meno, family = binomial)
-
-summary(model_b)
-
-# Step 3: Mediation analysis
-mediation_result <- mediate(model_a, model_b, treat = "Avg_Mean_Time",
-                            mediator = "Transition_to_meno", boot = TRUE, sims = 1000)
-
-summary(mediation_result)  # Check direct, indirect, and total effects
 
 
 write.csv(fullcog_meno,"fullcog_meno.csv")
@@ -1864,15 +1977,30 @@ head(supps)
 # View the updated dataframe with combined columns
 head(supps)
 
-filtered_meno_transition <- fullcog_meno %>%
-  filter(Transition_to_meno == 'Y' | !grepl('Not Sure|Premenopausal', Menopausal_Status_Instance_0))
+# Get women who reached meno within 5 years
+
+# Add a column indicating if participant was within 5 years of menopause at assessment
+fullcog_meno <- fullcog_meno %>%
+  mutate(Within_5_Years_of_Menopause = ifelse(abs(Min_Age_at_Menopause - Age.when.attended.assessment.centre...Instance.0) <= 5, "Y", "N"))
+
+unique(filtered_meno_transition1$Menopausal_Status_Instance_0)
+filtered_meno_transition1 <- fullcog_meno %>%
+  filter(Transition_to_meno == 'Y' | Within_5_Years_of_Menopause=='Y' | !grepl('Premenopausal', Menopausal_Status_Instance_0))
+
+#59732
+
+filtered_meno_transition2 <- filtered_meno_transition1 %>%
+  filter(grepl('Not Sure', Menopausal_Status_Instance_0))
+
+#47389
 
 
 # Step 2: Model the effect of cognitive decline and menopause transition on dementia diagnosis
 model_b <- glm(Dementia_Diagnosis ~ 
                  Avg_Mean_Time+
                  Avg_Pairs_Score+
-                 Surgical_Menopause_YN+
+                 #Surgical_Menopause_YN+
+                 Menopausal_Status_Instance_0+
                  Yrs_OC+
                  Yrs_HRT+
                  Diagnosed_infertility+
@@ -1887,77 +2015,35 @@ model_b <- glm(Dementia_Diagnosis ~
                  Ever.smoked...Instance.0 + 
                  Alcohol.drinker.status...Instance.0 + 
                  merged_BMI_column+ 
-                 Frequency.of.tiredness...lethargy.in.last.2.weeks...Instance.0+
-                 Frequency.of.depressed.mood.in.last.2.weeks...Instance.0+
                  Sleep_duration_num+
-                 Long.standing.illness..disability.or.infirmity...Instance.0 + 
+                
                  Serious_illness_injury_assault_to_yourself + 
                  Serious_illness_injury_assault_of_close_relative + 
                  Death_of_spouse_or_partner + 
                  Death_of_close_relative + 
                  Financial_difficulties + 
                  Marital_separation_divorce + 
-                 Hearing.difficulty.problems...Instance.0+
                  Seen.doctor..GP..for.nerves..anxiety..tension.or.depression...Instance.0 + 
                  Diabetes.diagnosed.by.doctor...Instance.0 + 
                  High_blood_pressure + 
                  Angina + 
                  Heart_attack + 
-                 Stroke
-                 +Back_pain
-               +Hip_pain
-               +Knee_pain
-               +Headache
-               +Neck_or_shoulder_pain
-               +Stomach_or_abdominal_pain
-               +Facial_pain
-               +Pain_all_over_body
-               +Irritability...Instance.0
-               +Miserableness...Instance.0
-               +Sensitivity...hurt.feelings...Instance.0
-               +Fed.up.feelings...Instance.0
-               +Nervous.feelings...Instance.0
-               +Worrier...anxious.feelings...Instance.0
-               +Tense....highly.strung....Instance.0
-               +Loneliness..isolation...Instance.0+
+                 Stroke+
+                 
                  Qualifications+ 
                Fish_oil_combined+
-                 Zinc+
-                 Selenium+
                  #Garlic,
                  #Ginkgo+
-                 Iron+
-                 Calcium+
-                 Glucosamine+
-                 `Folic acid or Folate (Vit B9)`+
-                 `Multivitamins +/- minerals`+
-                 Iron+
-                 Calcium+
-                 `Vitamin E`+
-                 `Vitamin C`+
+                
+                 Folic.acid.or.Folate..Vit.B9.+
+                 Multivitamins.....minerals+
+                
                  #`Evening primrose oil`+
-                 `Vitamin B`+
-                 `Vitamin D`+
-                 `Vitamin A`,
-               data =filtered_meno_transition, family = binomial)
+                 Vitamin.B+
+                 Vitamin.D,
+               data =filtered_meno_transition1, family = binomial)
 
-+
-  Glucosamine+
-  `Folic acid or Folate (Vit B9)`+
-  `Multivitamins +/- minerals`+
-  Iron+
-  Calcium+
-  `Vitamin E`+
-  `Vitamin C`+
-  `Evening primrose oil`+
-  `Vitamin B`+
-  `Vitamin D`+
-  `Vitamin A`+
-  Zinc+
-  Selenium+
-  Garlic+
-  Ginkgo
-`Evening primrose oil`+
+
 
 # Create date of event (dementia first, then death, or last update in UKBB-2023-01-01)
 summary(model_b)
@@ -1970,7 +2056,70 @@ tbl_regression(model_b, exponentiate = TRUE)
 
 write.csv(fullcog_meno,"fullcog_meno.csv")
 
+fullcog_meno <- read.csv("fullcog_meno.csv")
 
+fullcog_meno$Dementia_Diagnosis <- as.factor(fullcog_meno$Dementia_Diagnosis)
+
+# Step 2: Model the effect of cognitive decline and menopause transition on dementia diagnosis
+model_b <- glm(Dementia_Diagnosis ~ 
+                 Avg_Mean_Time+
+                 Avg_Pairs_Score+
+                 Surgical_Menopause_YN+
+                 #Transition_to_meno+
+                 #Within_5_Years_of_Menopause+
+                 Yrs_OC+
+                 Yrs_HRT+
+                 #Age.when.attended.assessment.centre...Instance.0+
+                LOE+
+                 #Number.of.live.births...Instance.0+
+                 #Diagnosed_infertility+
+                 #Had_endometriosis+
+                 APOE4 + 
+                 Ethnicity + 
+                 DietScore + 
+                 Townsend.deprivation.index.at.recruitment + 
+                 Ever.smoked...Instance.0 + 
+                 Alcohol.drinker.status...Instance.0 + 
+                 merged_BMI_column+ 
+                 Sleep_duration_num+
+                 Long.standing.illness..disability.or.infirmity...Instance.0 + 
+                 Serious_illness_injury_assault_to_yourself + 
+                 Serious_illness_injury_assault_of_close_relative + 
+                 Death_of_spouse_or_partner + 
+                 Death_of_close_relative + 
+                 Financial_difficulties + 
+                 Marital_separation_divorce + 
+                 Seen.doctor..GP..for.nerves..anxiety..tension.or.depression...Instance.0 + 
+                 Diabetes.diagnosed.by.doctor...Instance.0 + 
+                 High_blood_pressure + 
+                 Angina + 
+                 Heart_attack + 
+                 Stroke+
+                 Qualifications+ 
+                 Fish_oil_combined+
+                 Zinc+
+                 Selenium+
+                 #Garlic,
+                 #Ginkgo+
+                 Iron+
+                 Calcium+
+                 Glucosamine+
+                 Folic.acid.or.Folate..Vit.B9.+
+                 #Multivitamins.....minerals+
+                 Iron+
+                 Calcium+
+                 Vitamin.E+
+                 #Vitamin.C+
+                 #`Evening primrose oil`+
+                 Vitamin.B+
+                 Vitamin.D,
+                 #Vitamin.A,
+               data =filtered_meno_transition1, family = binomial)
+
+
+
+# Create date of event (dementia first, then death, or last update in UKBB-2023-01-01)
+summary(model_b)
 
 
 # Create age at event from date of event
@@ -1981,10 +2130,4 @@ write.csv(fullcog_meno,"fullcog_meno.csv")
 
 # Fill in NAs in LOE using age at assessment-age at menarche (????)
 
-
-  class(fullcog_meno$Avg_Mean_time_Perimenopausal)
-  Avg_Mean_time_Not_Sure+
-  Avg_Mean_time_Postmenopausal+
-  Avg_Mean_time_Premenopausal+
-  Avg_Mean_time_Surgical_Menopause+
 
