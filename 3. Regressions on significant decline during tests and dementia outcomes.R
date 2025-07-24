@@ -1,7 +1,7 @@
-
 install.packages("gtsummary")
 install.packages("broom.mixed")
 install.packages("tidyverse")
+install.packages("glue")
 library(gtsummary)
 library(broom.mixed)
 library(data.table)
@@ -86,7 +86,7 @@ summary(model_a)
 
 ### Lets run regressions to explore how menopause impacts cognitive test performance
 
-lm_processing <- glm(Significant_Decline_Processing ~ Transition_to_meno+
+lm_processing <- glm(Significant_Decline_Processing_R ~ Transition_to_meno+
                        Menopausal_Status_Instance_0+
                        Sleep_duration_num+
                        +Age.when.attended.assessment.centre...Instance.0+
@@ -374,6 +374,28 @@ tbl_regression(lme_processing, exponentiate = TRUE)
 
 ################## DEMENTIA #####################################################
 
+# remove old dementia variables 
+
+dementia_outcomes <- read.csv("outcomes_data_participant.csv")
+
+dementia_outcomes[dementia_outcomes == ""] <- NA
+
+fullcog_meno$Date.of.all.cause.dementia.report <- NULL
+
+fullcog_meno <- fullcog_meno %>%
+  left_join(dementia_outcomes %>%
+              dplyr::select(Participant.ID, Date.of.all.cause.dementia.report), 
+            by = "Participant.ID")
+
+# recalculate dementia 
+
+fullcog_meno <- fullcog_meno %>%
+  mutate(Dementia_Diagnosis = if_else(!is.na(Date.of.all.cause.dementia.report), "Yes", "No"))
+
+fullcog_meno%>%
+  group_by(Dementia_Diagnosis)%>%
+  summarise(count=n_distinct(Participant.ID))
+
 # Step 2: Model the effect of cognitive decline and menopause transition on dementia diagnosis
 
 fullcog_meno$Dementia_Diagnosis <- as.factor(fullcog_meno$Dementia_Diagnosis)
@@ -398,114 +420,94 @@ filtered_meno_transition2 <- filtered_meno_transition1 %>%
 
 n_distinct(filtered_meno_transition2$Participant.ID)
 
+# Select only people who have repeated cog testing scores
+
+repeated_tests <- fullcog_meno %>%
+  filter(!is.na(Significant_Decline_Processing_R))
+
+
+filtered_meno_transition1 <- repeated_tests %>% # Filter to get meno transitioners only
+  filter(Transition_to_meno == 'Y' | Within_5_Years_of_Menopause=='Y' | !grepl('Premenopausal', Menopausal_Status_Instance_0))
+
 
 
 # Step 2: Model the effect of cognitive decline and menopause transition on dementia diagnosis
 dementia_a <- glm(Dementia_Diagnosis ~ 
-                 Avg_Mean_Time+
-                 Avg_Pairs_Score+
-                 #Surgical_Menopause_YN+
-                 Menopausal_Status_Instance_0+
-                 Yrs_OC+
-                 Yrs_HRT+
-                 Diagnosed_infertility+
-                 Had_endometriosis+
-                 Age.when.attended.assessment.centre...Instance.0+
-                 LOE+
-                 Number.of.live.births...Instance.0+
-                 APOE4 + 
-                 Ethnicity + 
-                 DietScore + 
-                 Townsend.deprivation.index.at.recruitment + 
-                 Ever.smoked...Instance.0 + 
-                 Alcohol.drinker.status...Instance.0 + 
-                 merged_BMI_column+ 
-                 Sleep_duration_num+
-                 
-                 Serious_illness_injury_assault_to_yourself + 
-                 Serious_illness_injury_assault_of_close_relative + 
-                 Death_of_spouse_or_partner + 
-                 Death_of_close_relative + 
-                 Financial_difficulties + 
-                 Marital_separation_divorce + 
-                 Seen.doctor..GP..for.nerves..anxiety..tension.or.depression...Instance.0 + 
-                 Diabetes.diagnosed.by.doctor...Instance.0 + 
-                 High_blood_pressure + 
-                 Angina + 
-                 Heart_attack + 
-                 Stroke+
-                 
-                 Qualifications+ 
-                 Fish_oil_combined+
-                 #Garlic,
-                 #Ginkgo+
-                 
-                 Folic.acid.or.Folate..Vit.B9.+
-                 Multivitamins.....minerals+
-                 
-                 #`Evening primrose oil`+
-                 Vitamin.B+
-                 Vitamin.D,
-               data =filtered_meno_transition1, family = binomial)
+                    #Significant_Decline_Visual_Memory*Transition_to_meno+
+                    Significant_Decline_Processing+
+                    Surgical_Menopause_YN+
+                    Yrs_OC+
+                    Yrs_HRT+
+                    #Diagnosed_infertility+
+                    Had_endometriosis+
+                    Age.when.attended.assessment.centre...Instance.0+
+                    LOE+
+                    Number.of.live.births...Instance.0+
+                    APOE4 + 
+                    #Ethnicity + 
+                    DietScore + 
+                    Townsend.deprivation.index.at.recruitment + 
+                    Ever.smoked...Instance.0 + 
+                    Alcohol.drinker.status...Instance.0 + 
+                    merged_BMI_column+ 
+                    Sleep_duration_num+
+                    Seen.doctor..GP..for.nerves..anxiety..tension.or.depression...Instance.0 + 
+                    Diabetes.diagnosed.by.doctor...Instance.0 + 
+                    High_blood_pressure + 
+                    Angina + 
+                    Heart_attack + 
+                    Stroke+
+                    Qualifications+
+                    Fish_oil_combined+
+                    Folic.acid.or.Folate..Vit.B9.+
+                    Multivitamins.....minerals+
+                    Vitamin.B+
+                    Vitamin.D,
+                  
+                  data =filtered_meno_transition1, family = binomial)
 
 summary(dementia_a)
 
-dementia_b <- glm(Dementia_Diagnosis ~ 
-                 Avg_Mean_Time+
-                 Avg_Pairs_Score+
-                 Surgical_Menopause_YN+
-                 Transition_to_meno*Age.when.attended.assessment.centre...Instance.0+
-                 #Within_5_Years_of_Menopause+
-                 Yrs_OC+
-                 Yrs_HRT+
-                 
-                 LOE+
-                 #Number.of.live.births...Instance.0+
-                 #Diagnosed_infertility+
-                 #Had_endometriosis+
-                 APOE4 + 
-                 Ethnicity + 
-                 DietScore + 
-                 Townsend.deprivation.index.at.recruitment + 
-                 Ever.smoked...Instance.0 + 
-                 Alcohol.drinker.status...Instance.0 + 
-                 merged_BMI_column+ 
-                 Sleep_duration_num+
-                 Long.standing.illness..disability.or.infirmity...Instance.0 + 
-                 Serious_illness_injury_assault_to_yourself + 
-                 Serious_illness_injury_assault_of_close_relative + 
-                 Death_of_spouse_or_partner + 
-                 Death_of_close_relative + 
-                 Financial_difficulties + 
-                 Marital_separation_divorce + 
-                 Seen.doctor..GP..for.nerves..anxiety..tension.or.depression...Instance.0 + 
-                 Diabetes.diagnosed.by.doctor...Instance.0 + 
-                 High_blood_pressure + 
-                 Angina + 
-                 Heart_attack + 
-                 Stroke+
-                 Qualifications+ 
-                 Fish_oil_combined+
-                 Zinc+
-                 Selenium+
-                 #Garlic,
-                 #Ginkgo+
-                 Iron+
-                 Calcium+
-                 Glucosamine+
-                 Folic.acid.or.Folate..Vit.B9.+
-                 #Multivitamins.....minerals+
-                 Iron+
-                 Calcium+
-                 Vitamin.E+
-                 #Vitamin.C+
-                 #`Evening primrose oil`+
-                 Vitamin.B+
-                 Vitamin.D,
-               #Vitamin.A,
-               data =filtered_meno_transition1, family = binomial)
+library(dplyr)
 
-summary(dementia_b)
+repeated_tests <- repeated_tests %>%
+  mutate(Recent_transition = if_else(Transition_to_meno == "Y" | Within_5_Years_of_Menopause == "Y", "Y", "N"))
+
+
+# Step 2: Model the effect of cognitive decline and menopause transition on dementia diagnosis
+dementia_a <- glm(Dementia_Diagnosis ~ 
+                    #Significant_Decline_Visual_Memory*Transition_to_meno+
+                    Significant_Decline_Processing_R*Recent_transition+
+                    #Avg_Mean_Time+
+                    Yrs_OC+
+                    Yrs_HRT+
+                    #Diagnosed_infertility+
+                    Age.when.attended.assessment.centre...Instance.0+
+                    LOE+
+                    Number.of.live.births...Instance.0+
+                    APOE4 + 
+                    #Ethnicity + 
+                    Townsend.deprivation.index.at.recruitment + 
+                    Ever.smoked...Instance.0 + 
+                    Alcohol.drinker.status...Instance.0 + 
+                    merged_BMI_column+ 
+                    Sleep_duration_num+
+                    Seen.doctor..GP..for.nerves..anxiety..tension.or.depression...Instance.0 + 
+                    Diabetes.diagnosed.by.doctor...Instance.0 + 
+                    High_blood_pressure + 
+                    Qualifications+
+                    Fish_oil_combined+
+                    Vitamin.B+
+                    Vitamin.D,
+                  
+                  data =repeated_tests, family = binomial)
+
+summary(dementia_a)
+
+
+
+
+tbl_regression(dementia_a, exponentiate = TRUE)
 
 
 
