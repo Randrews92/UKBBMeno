@@ -462,7 +462,17 @@ dementia_a <- glm(Dementia_Diagnosis ~
                     Folic.acid.or.Folate..Vit.B9.+
                     Multivitamins.....minerals+
                     Vitamin.B+
-                    Vitamin.D,
+                    Vitamin.D+
+                    Number.of.treatments.medications.taken..
+                    +Serious_illness_injury_assault_to_yourself
+                  +Serious_illness_injury_assault_of_close_relative
+                  +Had_endometriosis
+                  + Diagnosed_infertility
+                  +Death_of_spouse_or_partner
+                  +Death_of_close_relative
+                  +Financial_difficulties
+                  +Marital_separation_divorce+
+                    Number,
                   
                   data =filtered_meno_transition1, family = binomial)
 
@@ -494,9 +504,14 @@ dementia_a <- glm(Dementia_Diagnosis ~
                     Sleep_duration_num+
                     Seen.doctor..GP..for.nerves..anxiety..tension.or.depression...Instance.0 + 
                     Diabetes.diagnosed.by.doctor...Instance.0 + 
+                    Number.of.treatments.medications.taken...Instance.0+
                     High_blood_pressure + 
+                    Angina + 
+                    Heart_attack + 
+                    Stroke+
                     Qualifications+
                     Fish_oil_combined+
+                    Multivitamins.....minerals+
                     Vitamin.B+
                     Vitamin.D,
                   
@@ -508,6 +523,12 @@ summary(dementia_a)
 
 
 tbl_regression(dementia_a, exponentiate = TRUE)
+
+
+sig_interaction_decline_dementia <- tbl_regression(dementia_a, exponentiate = TRUE)
+
+gtsummary::as_flex_table(sig_interaction_decline_dementia) %>%
+  flextable::save_as_docx(path = "regression_table.docx")
 
 
 
